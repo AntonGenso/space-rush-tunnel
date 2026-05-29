@@ -6,13 +6,18 @@
 <title>SPACE RUSH — Level 1</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
-  html,body{width:100vw;height:100vh;height:100dvh;overflow:hidden;background:#06060a;font-family:'Trebuchet MS','Segoe UI',sans-serif;touch-action:none}
-  #app{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:'Trebuchet MS','Segoe UI',sans-serif;touch-action:none}
+  /* game stage: fits in any window, capped at 16:9 aspect ratio, centered with black letterbox bars */
+  #stage{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+         width:min(100vw, 177.78vh);          /* 16/9 = 1.7778 — width limited by height */
+         height:min(100vh, 56.25vw);          /* 9/16 = 0.5625 — height limited by width  */
+         background:#06060a;overflow:hidden}
+  #app{position:absolute;inset:0}
   canvas{display:block}
 
   /* --- Thin neon HUD frame (overlay along the screen edge, hides tunnel shimmer) --- */
   :root{ --neon:#00e5ff; --neonGlow:rgba(0,229,255,.7); }
-  #hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+  #hud{position:absolute;inset:0;pointer-events:none;z-index:10}
 
   /* SVG frame fills the screen; its stroke runs right along the edge where it shimmers */
   #frameSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;
@@ -78,6 +83,7 @@
 </style>
 </head>
 <body>
+<div id="stage">
 <div id="app"></div>
 <div id="hud">
   <!-- octagonal neon frame sitting on the corridor rim; thick mask swallows the shimmering edge -->
@@ -121,12 +127,13 @@
     <div class="title">ПАУЗА</div>
     <div class="btn" id="resumeBtn">ПРОДОЛЖИТЬ</div>
   </div>
+</div>
+</div><!-- /stage -->
 
-  <!-- orientation gate: shown on touch devices when in portrait -->
-  <div id="rotateGate">
-    <div class="rotate-ico"></div>
-    <div class="rotate-title">ROTATE</div>
-  </div>
+<!-- orientation gate sits OUTSIDE the letterboxed stage so it covers the whole viewport -->
+<div id="rotateGate">
+  <div class="rotate-ico"></div>
+  <div class="rotate-title">ROTATE</div>
 </div>
 
 <script type="importmap">
@@ -153,10 +160,11 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a1e);
 scene.fog = new THREE.FogExp2(0x1a1a1e, 0.014);
 
-// real visible viewport (excludes hidden area under mobile address bars / DevTools chrome)
+// game stage is a centered 16:9 letterbox — measure its real client size
+const stageEl = document.getElementById('stage');
 function viewSize(){
-  const vv = window.visualViewport;
-  return { w: vv ? vv.width : innerWidth, h: vv ? vv.height : innerHeight };
+  const r = stageEl.getBoundingClientRect();
+  return { w: Math.max(2, r.width), h: Math.max(2, r.height) };
 }
 const _vs0 = viewSize();
 const camera = new THREE.PerspectiveCamera(78, _vs0.w/_vs0.h, 1.0, 600);
@@ -548,8 +556,8 @@ const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
 const target={x:0,y:0}; // desired ship position in play plane
 let firing=false;        // mobile: true while finger down. desktop: always true in play.
 function setTargetFromClient(cx,cy){
-  const vs=viewSize();
-  const nx=(cx/vs.w)*2-1, ny=-((cy/vs.h)*2-1);
+  const r=stageEl.getBoundingClientRect();
+  const nx=((cx-r.left)/r.width)*2-1, ny=-(((cy-r.top)/r.height)*2-1);
   target.x=nx*PLAY_HW; target.y=ny*PLAY_HH;
 }
 // DESKTOP: mouse steers, ship fires automatically the whole time
