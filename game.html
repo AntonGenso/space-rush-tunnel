@@ -2,12 +2,12 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>SPACE RUSH — Level 1</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
-  html,body{width:100%;height:100%;overflow:hidden;background:#06060a;font-family:'Trebuchet MS','Segoe UI',sans-serif;touch-action:none}
-  #app{position:fixed;inset:0}
+  html,body{width:100vw;height:100vh;height:100dvh;overflow:hidden;background:#06060a;font-family:'Trebuchet MS','Segoe UI',sans-serif;touch-action:none}
+  #app{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh}
   canvas{display:block}
 
   /* --- Thin neon HUD frame (overlay along the screen edge, hides tunnel shimmer) --- */
@@ -153,12 +153,18 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1a1e);
 scene.fog = new THREE.FogExp2(0x1a1a1e, 0.014);
 
-const camera = new THREE.PerspectiveCamera(78, innerWidth/innerHeight, 1.0, 600);
+// real visible viewport (excludes hidden area under mobile address bars / DevTools chrome)
+function viewSize(){
+  const vv = window.visualViewport;
+  return { w: vv ? vv.width : innerWidth, h: vv ? vv.height : innerHeight };
+}
+const _vs0 = viewSize();
+const camera = new THREE.PerspectiveCamera(78, _vs0.w/_vs0.h, 1.0, 600);
 camera.position.set(0, 1.5, 11);
 
 const renderer = new THREE.WebGLRenderer({ antialias:true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setSize(innerWidth, innerHeight);
+renderer.setSize(_vs0.w, _vs0.h);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 app.appendChild(renderer.domElement);
@@ -542,7 +548,8 @@ const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
 const target={x:0,y:0}; // desired ship position in play plane
 let firing=false;        // mobile: true while finger down. desktop: always true in play.
 function setTargetFromClient(cx,cy){
-  const nx=(cx/innerWidth)*2-1, ny=-((cy/innerHeight)*2-1);
+  const vs=viewSize();
+  const nx=(cx/vs.w)*2-1, ny=-((cy/vs.h)*2-1);
   target.x=nx*PLAY_HW; target.y=ny*PLAY_HH;
 }
 // DESKTOP: mouse steers, ship fires automatically the whole time
@@ -835,7 +842,18 @@ function animate(){
 let obSpawn=2.0;
 animate();
 
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight); checkOrientation();});
+function applyViewSize(){
+  const vs = viewSize();
+  camera.aspect = vs.w / vs.h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(vs.w, vs.h);
+  checkOrientation();
+}
+addEventListener('resize', applyViewSize);
+if(window.visualViewport){
+  visualViewport.addEventListener('resize', applyViewSize);
+  visualViewport.addEventListener('scroll', applyViewSize);
+}
 addEventListener('orientationchange', ()=>setTimeout(checkOrientation,150));
 
 // orientation gate: on touch devices, force landscape during play
@@ -843,7 +861,8 @@ const rotateGate = document.getElementById('rotateGate');
 let pausedByOrientation = false;
 function checkOrientation(){
   if(!isTouch){ rotateGate.classList.remove('show'); return; }
-  const portrait = innerHeight > innerWidth;
+  const vs=viewSize();
+  const portrait = vs.h > vs.w;
   if(portrait){
     rotateGate.classList.add('show');
     if(state==='play'){ state='pause'; pausedByOrientation=true; }
