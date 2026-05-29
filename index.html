@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SPACE RUSH</title>
+<style>
+  :root{ --neon:#00e5ff; --neonGlow:rgba(0,229,255,.7); }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+  html,body{width:100%;height:100%;overflow:hidden;background:#06070a;font-family:'Trebuchet MS','Segoe UI',sans-serif;color:#fff}
+
+  /* background image */
+  #bg{position:fixed;inset:0;background:#06070a center 38%/cover no-repeat;
+      background-image:url('menu_bg.jpg');
+      filter:saturate(1.05)}
+  /* slight top/bottom darkening so logo and button read clearly over the image */
+  #bg::before{content:'';position:absolute;inset:0;
+    background:linear-gradient(180deg, rgba(6,7,10,.6) 0%, rgba(6,7,10,0) 22%, rgba(6,7,10,0) 70%, rgba(6,7,10,.75) 100%);
+    pointer-events:none}
+
+  /* Procedural fallback if no menu_bg.jpg present (animated retro grid) */
+  #bgFallback{position:fixed;inset:0;background:
+      radial-gradient(ellipse at 50% 70%, rgba(0,229,255,.18), transparent 60%),
+      linear-gradient(180deg,#070b15 0%, #0a0612 100%);
+      display:none}
+  #bgFallback canvas{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:.6}
+
+  /* menu layout — logo top, play button bottom, image showcased between */
+  #menu{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+        z-index:10;padding:6vh 24px 8vh;text-align:center;pointer-events:none}
+  .logo-block{pointer-events:auto}
+  .logo{font-size:clamp(40px,7vw,84px);font-weight:900;font-style:italic;letter-spacing:6px;
+        background:linear-gradient(180deg,#fff,#9af6ff 70%,var(--neon));-webkit-background-clip:text;background-clip:text;color:transparent;
+        text-shadow:0 0 36px var(--neonGlow);line-height:1}
+  .tagline{font-size:clamp(11px,1.4vw,15px);letter-spacing:5px;color:rgba(255,255,255,.7);margin-top:10px}
+
+  .play{pointer-events:auto;padding:18px 64px;border:2px solid var(--neon);border-radius:60px;
+        background:rgba(0,229,255,.18);color:#fff;font-size:20px;font-weight:800;letter-spacing:3px;
+        cursor:pointer;box-shadow:0 0 22px var(--neonGlow), inset 0 0 22px rgba(0,229,255,.15);
+        transition:transform .15s, background .15s; backdrop-filter:blur(2px)}
+  .play:hover{background:rgba(0,229,255,.3)}
+  .play:active{transform:scale(.96)}
+  .play[disabled]{opacity:.35;cursor:not-allowed;pointer-events:none}
+
+  .controls-hint{position:fixed;bottom:24px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.55);z-index:11;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+
+  /* top-right toolbar: language + sound */
+  .toolbar{position:fixed;top:18px;right:18px;display:flex;gap:10px;z-index:30;pointer-events:auto}
+  .tool-btn{min-width:44px;height:44px;padding:0 12px;border:2px solid var(--neon);border-radius:22px;
+            background:rgba(0,229,255,.12);color:#fff;font-size:14px;font-weight:800;letter-spacing:2px;
+            cursor:pointer;box-shadow:0 0 10px var(--neonGlow);
+            display:flex;align-items:center;justify-content:center;transition:transform .12s, background .12s}
+  .tool-btn:hover{background:rgba(0,229,255,.25)}
+  .tool-btn:active{transform:scale(.94)}
+  .tool-btn.lang{font-size:13px}
+  .tool-btn.muted{opacity:.55;border-color:rgba(255,255,255,.3);box-shadow:none;background:rgba(255,255,255,.05);color:rgba(255,255,255,.6)}
+
+  /* orientation gate — only shown on touch devices in portrait */
+  #rotate{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+          background:rgba(6,7,10,.94);backdrop-filter:blur(8px);z-index:50;text-align:center;padding:24px}
+  #rotate.show{display:flex}
+  .rotate-ico{width:120px;height:120px;border:3px solid var(--neon);border-radius:18px;
+              position:relative;margin-bottom:36px;animation:rotate90 2.4s ease-in-out infinite}
+  .rotate-ico::before{content:'';position:absolute;top:50%;left:50%;width:60px;height:8px;background:var(--neon);
+                      transform:translate(-50%,-50%);border-radius:4px;box-shadow:0 0 12px var(--neonGlow)}
+  @keyframes rotate90{
+    0%,40%{transform:rotate(0deg)}
+    60%,100%{transform:rotate(-90deg)}
+  }
+  .rotate-title{font-size:22px;font-weight:800;letter-spacing:3px;color:var(--neon);text-shadow:0 0 12px var(--neonGlow)}
+  .rotate-sub{font-size:14px;color:rgba(255,255,255,.7);margin-top:14px;max-width:280px;line-height:1.6}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="bgFallback"><canvas id="bgCanvas"></canvas></div>
+
+<div class="toolbar">
+  <button class="tool-btn lang" id="langBtn" title="Language">RU</button>
+  <button class="tool-btn sound" id="soundBtn" title="Sound">♪</button>
+</div>
+
+<div id="menu">
+  <div class="logo-block">
+    <div class="logo">SPACE RUSH</div>
+    <div class="tagline" data-i18n="tagline">КОСМИЧЕСКИЙ ТУННЕЛЬ</div>
+  </div>
+  <button class="play" id="playBtn" data-i18n="play">PLAY</button>
+</div>
+
+<div class="controls-hint" data-i18n="controls">ПК: МЫШЬ — ВЕДЁТ КОРАБЛЬ · ТЕЛЕФОН: ПАЛЕЦ</div>
+
+<div id="rotate">
+  <div class="rotate-ico"></div>
+  <div class="rotate-title" data-i18n="rotateTitle">ROTATE</div>
+</div>
+
+<script>
+  // --- i18n ---
+  const I18N = {
+    ru: {
+      tagline:     'КОСМИЧЕСКИЙ ТУННЕЛЬ',
+      play:        'PLAY',
+      controls:    'ПК: МЫШЬ — ВЕДЁТ КОРАБЛЬ · ТЕЛЕФОН: ПАЛЕЦ',
+      rotateTitle: 'ROTATE',
+      rotateSub:   '',
+    },
+    uz: {
+      tagline:     'KOSMIK TUNNEL',
+      play:        'PLAY',
+      controls:    "KOMPYUTER: SICHQONCHA · TELEFON: BARMOQ",
+      rotateTitle: 'ROTATE',
+      rotateSub:   '',
+    }
+  };
+  let lang = localStorage.getItem('sr_lang') || 'ru';
+  const langBtn = document.getElementById('langBtn');
+  function applyLang(){
+    const dict = I18N[lang];
+    document.querySelectorAll('[data-i18n]').forEach(el=>{
+      const k = el.getAttribute('data-i18n');
+      if(dict[k]!==undefined) el.textContent = dict[k];
+    });
+    langBtn.textContent = (lang==='ru') ? 'UZ' : 'RU';   // shows the OTHER language as the action
+    document.documentElement.lang = lang;
+  }
+  langBtn.addEventListener('click', ()=>{
+    lang = (lang==='ru') ? 'uz' : 'ru';
+    localStorage.setItem('sr_lang', lang);
+    applyLang();
+  });
+  applyLang();
+
+  // --- Sound toggle (persisted; game.html reads the same key) ---
+  let muted = localStorage.getItem('sr_muted') === '1';
+  const soundBtn = document.getElementById('soundBtn');
+  function applySound(){
+    soundBtn.textContent = muted ? '✕' : '♪';
+    soundBtn.classList.toggle('muted', muted);
+    soundBtn.title = muted ? 'Sound off' : 'Sound on';
+  }
+  soundBtn.addEventListener('click', ()=>{
+    muted = !muted;
+    localStorage.setItem('sr_muted', muted ? '1' : '0');
+    applySound();
+  });
+  applySound();
+
+  // --- Orientation gate (mobile/touch only) ---
+  const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+  const rotateScreen = document.getElementById('rotate');
+  const playBtn = document.getElementById('playBtn');
+
+  function checkOrientation(){
+    if(!isTouch){ rotateScreen.classList.remove('show'); playBtn.disabled=false; return; }
+    const portrait = innerHeight > innerWidth;
+    if(portrait){ rotateScreen.classList.add('show'); playBtn.disabled=true; }
+    else        { rotateScreen.classList.remove('show'); playBtn.disabled=false; }
+  }
+  checkOrientation();
+  addEventListener('resize', checkOrientation);
+  addEventListener('orientationchange', ()=>setTimeout(checkOrientation,150));
+
+  // --- Play button ---
+  playBtn.addEventListener('click', ()=>{ location.href = 'game.html'; });
+
+  // --- Fallback animated background if menu_bg.jpg is missing ---
+  const bgImg = new Image();
+  bgImg.onerror = ()=>{
+    document.getElementById('bg').style.display='none';
+    const fb = document.getElementById('bgFallback'); fb.style.display='block';
+    runFallback(document.getElementById('bgCanvas'));
+  };
+  bgImg.src = 'menu_bg.jpg';
+
+  function runFallback(cv){
+    const ctx=cv.getContext('2d');
+    function resize(){ cv.width=innerWidth*devicePixelRatio; cv.height=innerHeight*devicePixelRatio; ctx.scale(devicePixelRatio,devicePixelRatio); }
+    resize(); addEventListener('resize',()=>{ cv.width=cv.width; resize(); });
+    let t=0;
+    (function loop(){
+      t+=0.005;
+      ctx.fillStyle='rgba(6,7,10,0.25)'; ctx.fillRect(0,0,innerWidth,innerHeight);
+      ctx.strokeStyle='rgba(0,229,255,0.4)'; ctx.lineWidth=1;
+      const cx=innerWidth/2, cy=innerHeight*0.65;
+      // perspective grid lines from a vanishing point
+      for(let i=0;i<24;i++){
+        const a = (i/24)*Math.PI*2 + t;
+        ctx.beginPath(); ctx.moveTo(cx,cy);
+        ctx.lineTo(cx+Math.cos(a)*innerWidth, cy+Math.sin(a)*innerHeight);
+        ctx.stroke();
+      }
+      // receding squares
+      for(let r=0;r<12;r++){
+        const k = ((r/12)+(t%0.083)*12)%1;
+        const sz = k*innerWidth*0.9;
+        ctx.globalAlpha = (1-k)*0.5;
+        ctx.strokeRect(cx-sz/2, cy-sz/2, sz, sz);
+      }
+      ctx.globalAlpha=1;
+      requestAnimationFrame(loop);
+    })();
+  }
+</script>
+</body>
+</html>

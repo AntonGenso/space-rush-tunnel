@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SPACE RUSH — Level 1</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+  html,body{width:100%;height:100%;overflow:hidden;background:#06060a;font-family:'Trebuchet MS','Segoe UI',sans-serif;touch-action:none}
+  #app{position:fixed;inset:0}
+  canvas{display:block}
+
+  /* --- Thin neon HUD frame (overlay along the screen edge, hides tunnel shimmer) --- */
+  :root{ --neon:#00e5ff; --neonGlow:rgba(0,229,255,.7); }
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+
+  /* SVG frame fills the screen; its stroke runs right along the edge where it shimmers */
+  #frameSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;
+    filter:drop-shadow(0 0 4px var(--neonGlow)) drop-shadow(0 0 9px var(--neonGlow))}
+  #frameSvg .edge{fill:none;stroke:var(--neon);stroke-width:3;vector-effect:non-scaling-stroke}
+  #frameSvg .edge2{fill:none;stroke:var(--neon);stroke-width:1;opacity:.5;vector-effect:non-scaling-stroke}
+  #frameSvg .notch{stroke:var(--neon);stroke-width:2;vector-effect:non-scaling-stroke;opacity:.9}
+  /* thick dark band right on the tunnel rim to swallow the shimmering pixels */
+  #frameSvg .mask{fill:none;stroke:#070b0e;stroke-width:22;vector-effect:non-scaling-stroke}
+  /* solid dark fill for everything OUTSIDE the octagon (frames the corridor) */
+  #frameSvg .outerfill{fill:#070b0e;fill-rule:evenodd}
+
+  /* HUD content sits inside the top of the frame, centered */
+  .hud-top{position:absolute;top:10px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:34px;z-index:3}
+  .stars{display:flex;align-items:center;gap:9px}
+  .star-ic{font-size:24px;color:#ffd23a;filter:drop-shadow(0 0 8px rgba(255,210,58,.8));line-height:1}
+  .star-cnt{font-size:28px;font-weight:800;font-style:italic;color:#fff;letter-spacing:1px}
+  .star-cnt small{font-size:15px;color:rgba(255,255,255,.5);font-style:normal}
+
+  .center-block{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .lvl{font-size:14px;letter-spacing:5px;color:var(--neon);font-weight:800;text-shadow:0 0 10px var(--neonGlow)}
+  .timerbar{width:200px;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;border:1px solid rgba(0,229,255,.25)}
+  .timerbar>i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--neon),#9af6ff);border-radius:3px;transition:width .2s linear;box-shadow:0 0 8px var(--neonGlow)}
+
+  .lives{display:flex;gap:5px}
+  .heart{font-size:21px;line-height:1;transition:transform .2s}
+  .heart.full{color:#ff4d6d;filter:drop-shadow(0 0 6px rgba(255,77,109,.7))}
+  .heart.empty{color:rgba(255,255,255,.16)}
+
+  .combo{position:absolute;top:84px;left:50%;transform:translateX(-50%);font-size:24px;font-weight:800;font-style:italic;color:#ffd23a;opacity:0;text-shadow:0 0 14px rgba(255,210,58,.8);transition:opacity .2s;z-index:3}
+  .combo.on{opacity:1}
+
+  #pauseHit{position:absolute;top:20px;right:40px;width:34px;height:34px;border-radius:6px;border:2px solid var(--neon);display:flex;align-items:center;justify-content:center;color:var(--neon);font-size:13px;pointer-events:auto;cursor:pointer;box-shadow:0 0 8px var(--neonGlow);z-index:4}
+
+  .center-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:auto;background:rgba(6,6,10,.72);backdrop-filter:blur(3px);transition:opacity .3s;z-index:20}
+  .center-msg.hide{opacity:0;pointer-events:none}
+  .title{font-size:46px;font-weight:800;font-style:italic;letter-spacing:3px;color:#fff;text-shadow:0 0 24px var(--neonGlow)}
+  .sub{font-size:16px;color:rgba(255,255,255,.65);margin-top:14px;line-height:1.7;max-width:330px}
+  .btn{margin-top:26px;padding:14px 44px;border:2px solid var(--neon);border-radius:40px;color:#fff;background:rgba(0,229,255,.14);font-size:18px;font-weight:700;letter-spacing:2px;cursor:pointer;pointer-events:auto}
+  .btn:active{transform:scale(.96);background:rgba(0,229,255,.3)}
+  .big-score{font-size:64px;font-weight:800;font-style:italic;color:#ffd23a;margin:10px 0;text-shadow:0 0 24px rgba(255,210,58,.6)}
+
+  /* orientation gate (mobile portrait only) */
+  #rotateGate{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+              background:rgba(6,7,10,.94);backdrop-filter:blur(8px);z-index:100;text-align:center;padding:24px;pointer-events:auto}
+  #rotateGate.show{display:flex}
+  .rotate-ico{width:120px;height:120px;border:3px solid var(--neon);border-radius:18px;
+              position:relative;margin-bottom:36px;animation:rotate90 2.4s ease-in-out infinite}
+  .rotate-ico::before{content:'';position:absolute;top:50%;left:50%;width:60px;height:8px;background:var(--neon);
+                      transform:translate(-50%,-50%);border-radius:4px;box-shadow:0 0 12px var(--neonGlow)}
+  @keyframes rotate90{0%,40%{transform:rotate(0deg)} 60%,100%{transform:rotate(-90deg)}}
+  .rotate-title{font-size:22px;font-weight:800;letter-spacing:3px;color:var(--neon);text-shadow:0 0 12px var(--neonGlow)}
+  .rotate-sub{font-size:14px;color:rgba(255,255,255,.7);margin-top:14px;max-width:280px;line-height:1.6}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="hud">
+  <!-- octagonal neon frame sitting on the corridor rim; thick mask swallows the shimmering edge -->
+  <svg id="frameSvg" viewBox="0 0 1000 562" preserveAspectRatio="xMidYMid slice">
+    <!-- dark fill OUTSIDE the octagon: full rect + octagon hole (evenodd) -->
+    <path class="outerfill" d="M 0 0 L 1000 0 L 1000 562 L 0 562 Z
+      M 200 60 L 800 60 L 860 150 L 860 412 L 800 502 L 200 502 L 140 412 L 140 150 Z"/>
+    <!-- thick dark mask band ON the tunnel edge to cover shimmer -->
+    <path class="mask" d="M 200 60 L 800 60 L 860 150 L 860 412 L 800 502 L 200 502 L 140 412 L 140 150 Z"/>
+    <!-- bright neon edge -->
+    <path class="edge" d="M 200 60 L 800 60 L 860 150 L 860 412 L 800 502 L 200 502 L 140 412 L 140 150 Z"/>
+    <!-- faint inner echo line -->
+    <path class="edge2" d="M 210 72 L 790 72 L 848 158 L 848 404 L 790 490 L 210 490 L 152 404 L 152 158 Z"/>
+    <!-- decorative notches on the top edge -->
+    <line class="notch" x1="430" y1="60" x2="430" y2="70"/>
+    <line class="notch" x1="455" y1="60" x2="455" y2="70"/>
+    <line class="notch" x1="545" y1="60" x2="545" y2="70"/>
+    <line class="notch" x1="570" y1="60" x2="570" y2="70"/>
+  </svg>
+
+  <!-- HUD inside top of the frame, centered -->
+  <div class="hud-top">
+    <div class="stars"><span class="star-ic">★</span><span class="star-cnt" id="starCnt">0<small>/20</small></span></div>
+    <div class="center-block">
+      <div class="lvl" id="lvlLabel">LEVEL 1</div>
+      <div class="timerbar"><i id="timerFill"></i></div>
+    </div>
+    <div class="lives" id="lives"></div>
+  </div>
+  <div id="pauseHit">II</div>
+  <div class="combo" id="combo">COMBO x2</div>
+
+  <div class="center-msg" id="startScreen">
+    <div class="title">SPACE RUSH</div>
+    <div class="sub" id="startSub">Веди корабль мышью или пальцем — он стреляет сам.<br>Сбивай красные шары, собирай звёзды.<br>Лавируй между неоновыми блоками на стенах.</div>
+    <div class="btn" id="startBtn">ИГРАТЬ</div>
+  </div>
+
+  <div class="center-msg hide" id="endScreen">
+    <div class="title" id="endTitle">LEVEL 1</div>
+    <div class="big-score" id="endScore">0</div>
+    <div class="sub" id="endSub">звёзд собрано</div>
+    <div class="btn" id="endBtn">ЗАНОВО</div>
+  </div>
+
+  <div class="center-msg hide" id="pauseScreen">
+    <div class="title">ПАУЗА</div>
+    <div class="btn" id="resumeBtn">ПРОДОЛЖИТЬ</div>
+  </div>
+
+  <!-- orientation gate: shown on touch devices when in portrait -->
+  <div id="rotateGate">
+    <div class="rotate-ico"></div>
+    <div class="rotate-title">ПОВЕРНИ ТЕЛЕФОН</div>
+    <div class="rotate-sub">Игра работает в горизонтальном положении</div>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ============ CONFIG (Level 1) ============
+const LEVEL = 1;
+const NEON = 0x00e5ff;            // level 1 neon: turquoise / cyan
+const LEVEL_DURATION = 60;        // seconds
+const BALLS_TOTAL = 30;           // level 1 spawns 30
+const STAR_CAP = 20;              // max stars per level
+const SPECIAL_EVERY = 6;          // roughly every Nth ball is special (gives booster too)
+const START_LIVES = 3, MAX_LIVES = 5;
+const HIT_INVULN = 3.0;           // sec after damage
+const SHIELD_TIME = 10.0;         // immortality booster
+
+// ============ Scene ============
+const app = document.getElementById('app');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a1e);
+scene.fog = new THREE.FogExp2(0x1a1a1e, 0.014);
+
+const camera = new THREE.PerspectiveCamera(78, innerWidth/innerHeight, 1.0, 600);
+camera.position.set(0, 1.5, 11);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+app.appendChild(renderer.domElement);
+
+// Lights
+scene.add(new THREE.AmbientLight(0xffffff, 1.15));
+const key = new THREE.DirectionalLight(0xcfe0ff, 1.0);
+key.position.set(6, 16, 10); key.castShadow=true;
+key.shadow.mapSize.set(1024,1024); key.shadow.camera.far=120;
+scene.add(key);
+const neonLight = new THREE.PointLight(NEON, 1.2, 60);
+neonLight.position.set(0,4,-20); scene.add(neonLight);
+
+// ============ Neon grid tunnel (octagonal, segmented conveyor) ============
+// Cross-section is a chamfered rectangle (octagon): wider than tall, with the
+// four corners cut off. Built from identical 1-cell-deep segments that fly toward
+// the player and recycle to the far end, so the whole wall moves as one piece.
+const HW = 11;          // half-width  (horizontal — wide)
+const HH = 6.5;         // half-height (vertical)
+const CHAMF = 3.2;      // how much each corner is cut (the diagonal faces)
+const CELL = 2.0;       // grid cell size along the tunnel (depth)
+const SEG_COUNT = 60;
+const corridor = new THREE.Group(); scene.add(corridor);
+
+let gridColor = NEON;
+
+// retro matte palette (muted poster tones)
+const RETRO = [0xc04a32, 0x2a8f8a, 0xd99b2b, 0x3a6ea5, 0xb5562e, 0x2f9e8f, 0xe0a93b, 0x9c3f2a];
+function retroColor(){ return RETRO[(Math.random()*RETRO.length)|0]; }
+
+// Octagon profile: 8 vertices around the cross-section (clockwise from top-left chamfer).
+const PROFILE = [
+  [-HW+CHAMF,  HH], [ HW-CHAMF,  HH],   // top edge
+  [ HW,  HH-CHAMF], [ HW, -HH+CHAMF],   // right edge
+  [ HW-CHAMF, -HH], [-HW+CHAMF, -HH],   // bottom edge
+  [-HW, -HH+CHAMF], [-HW,  HH-CHAMF],   // left edge
+];
+// playable bounds for the ship (kept inside the octagon, away from chamfers)
+const PLAY_HW = HW-CHAMF-0.8, PLAY_HH = HH-1.0;
+
+// single shared material for matte vertex-colored walls
+const mosaicMat=new THREE.MeshStandardMaterial({vertexColors:true, roughness:1.0, metalness:0.0, side:THREE.DoubleSide});
+const gridMat=new THREE.LineBasicMaterial({ color:gridColor, transparent:true, opacity:0.85, fog:true });
+
+// Build ONE segment: a 1-cell-deep ring around the octagon (mosaic mesh + thin neon lines).
+function buildSegment(){
+  const seg=new THREE.Group();
+  const positions=[], colors=[], indices=[], lp=[]; let vi=0; const c=new THREE.Color();
+  const z0=0, z1=-CELL;
+
+  for(let e=0;e<PROFILE.length;e++){
+    const A=PROFILE[e], B=PROFILE[(e+1)%PROFILE.length];
+    const ax=A[0],ay=A[1], bx=B[0],by=B[1];
+    const len=Math.hypot(bx-ax,by-ay);
+    const cells=Math.max(1,Math.round(len/CELL));
+    for(let k=0;k<cells;k++){
+      const t0=k/cells, t1=(k+1)/cells;
+      const x0=ax+(bx-ax)*t0, y0=ay+(by-ay)*t0;
+      const x1=ax+(bx-ax)*t1, y1=ay+(by-ay)*t1;
+      positions.push(x0,y0,z0, x1,y1,z0, x1,y1,z1, x0,y0,z1);
+      c.setHex(retroColor());
+      for(let q=0;q<4;q++) colors.push(c.r*0.55,c.g*0.55,c.b*0.55);
+      indices.push(vi,vi+1,vi+2, vi,vi+2,vi+3); vi+=4;
+      lp.push(x0,y0,z0, x1,y1,z0);   // transversal line
+      lp.push(x0,y0,z0, x0,y0,z1);   // longitudinal line
+    }
+  }
+  const mg=new THREE.BufferGeometry();
+  mg.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  mg.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+  mg.setIndex(indices); mg.computeVertexNormals();
+  seg.add(new THREE.Mesh(mg, mosaicMat));
+  const lg=new THREE.BufferGeometry(); lg.setAttribute('position',new THREE.Float32BufferAttribute(lp,3));
+  seg.add(new THREE.LineSegments(lg, gridMat));
+  return seg;
+}
+
+const segments=[];
+for(let i=0;i<SEG_COUNT;i++){ const s=buildSegment(); s.position.z = -i*CELL; corridor.add(s); segments.push(s); }
+
+
+
+function setTunnelColor(hex){ gridColor=hex; gridMat.color.set(hex); }
+
+
+
+
+// star dust
+const starGeo=new THREE.BufferGeometry(); const sp=[];
+for(let i=0;i<300;i++) sp.push((Math.random()-0.5)*60,(Math.random()-0.5)*30,-Math.random()*200);
+starGeo.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
+const dust=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0x88bbff,size:0.12,transparent:true,opacity:0.7}));
+scene.add(dust);
+
+// ============ Player ship (from prototype design) ============
+const player = new THREE.Group();
+player.position.set(0,0,5);
+scene.add(player);
+const ship = new THREE.Group(); player.add(ship);
+
+const wingShape=new THREE.Shape();
+wingShape.moveTo(0,0.9); wingShape.lineTo(1.1,-0.5); wingShape.lineTo(0.35,-0.2);
+wingShape.lineTo(0,-0.55); wingShape.lineTo(-0.35,-0.2); wingShape.lineTo(-1.1,-0.5); wingShape.lineTo(0,0.9);
+const wingGeo=new THREE.ExtrudeGeometry(wingShape,{depth:0.18,bevelEnabled:true,bevelThickness:0.06,bevelSize:0.06,bevelSegments:2});
+const wing=new THREE.Mesh(wingGeo,new THREE.MeshStandardMaterial({color:0x2f7fff,emissive:0x0a2a66,roughness:0.4,metalness:0.3}));
+wing.scale.setScalar(0.8); wing.rotation.x=Math.PI/2; wing.rotation.z=Math.PI; wing.castShadow=true;
+ship.add(wing);
+// subtle internal light (also used to flash when shield is active)
+const coreLight=new THREE.PointLight(0x4aa0ff,1.0,6); ship.add(coreLight);
+// engine glow trail
+const trailMat=new THREE.MeshBasicMaterial({color:0x4aa0ff,transparent:true,opacity:0.5});
+const trail=new THREE.Mesh(new THREE.ConeGeometry(0.18,0.9,8),trailMat);
+trail.rotation.x=-Math.PI/2; trail.position.z=0.7; ship.add(trail);
+
+// ============ Object pools ============
+const balls=[], stars=[], boosters=[], obstacles=[], bullets=[], fx=[];
+const ballMat=new THREE.MeshStandardMaterial({color:0xff14c8,emissive:0xff00b8,emissiveIntensity:1.4,roughness:0.2,metalness:0.0});
+
+function makeStar(){
+  // 3D star = two crossed tetrahedra-ish / use simple extruded star
+  const s=new THREE.Shape(); const spikes=5,outer=0.45,inner=0.2;
+  for(let i=0;i<spikes*2;i++){const r=i%2?inner:outer;const a=Math.PI/spikes*i-Math.PI/2;
+    const x=Math.cos(a)*r,y=Math.sin(a)*r; i===0?s.moveTo(x,y):s.lineTo(x,y);} s.closePath();
+  const g=new THREE.ExtrudeGeometry(s,{depth:0.18,bevelEnabled:true,bevelThickness:0.05,bevelSize:0.05,bevelSegments:1});
+  g.center();
+  return new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0xffd23a,emissive:0x6b5400,emissiveIntensity:0.8,metalness:0.4,roughness:0.3}));
+}
+function makeBooster(kind){
+  const col = kind==='life'?0xff4d6d:0x39ffd0;
+  const g = new THREE.Group();
+  const orb=new THREE.Mesh(new THREE.IcosahedronGeometry(0.4,0),new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.6,transparent:true,opacity:0.85,metalness:0.3,roughness:0.2}));
+  g.add(orb);
+  const halo=new THREE.Mesh(new THREE.TorusGeometry(0.55,0.04,6,16),new THREE.MeshBasicMaterial({color:col}));
+  g.add(halo);
+  g.userData.kind=kind; g.userData.col=col;
+  return g;
+}
+
+let ballsSpawned=0;
+function spawnBall(){
+  if(ballsSpawned>=BALLS_TOTAL) return;
+  ballsSpawned++;
+  const r=0.5+Math.random()*0.55;
+  const m=new THREE.Mesh(new THREE.SphereGeometry(r,20,20),ballMat.clone());
+  const x=(Math.random()*2-1)*PLAY_HW, y=(Math.random()*2-1)*PLAY_HH;
+  m.position.set(x,y,player.position.z-60-Math.random()*8);
+  m.userData={r,hp:1, special:(ballsSpawned%SPECIAL_EVERY===0)};
+  if(m.userData.special){ // marker ring = this ball also drops a booster
+    const mark=new THREE.Mesh(new THREE.TorusGeometry(r*1.35,0.05,6,20),new THREE.MeshBasicMaterial({color:0xffffff}));
+    m.add(mark); m.userData.mark=mark;
+  }
+  m.castShadow=true; scene.add(m); balls.push(m);
+}
+// Rectangular box obstacle with the same matte mosaic + neon cell grid as the tunnel walls.
+// For wall extrusions we'll make it WIDER than the flat wall face so the corners hide
+// inside the chamfered diagonals of the octagon — no triangular gaps in the corners.
+function makeObstacleBox(w,h,d){
+  const positions=[], colors=[], indices=[]; let vi=0; const c=new THREE.Color();
+  const hw=w/2, hh=h/2, hd=d/2;
+  const nx=Math.max(1,Math.round(w/CELL)), ny=Math.max(1,Math.round(h/CELL)), nz=Math.max(1,Math.round(d/CELL));
+  function quad(p0,p1,p2,p3){
+    [p0,p1,p2,p3].forEach(p=>positions.push(p[0],p[1],p[2]));
+    c.setHex(retroColor()); for(let q=0;q<4;q++) colors.push(c.r*0.55,c.g*0.55,c.b*0.55);
+    indices.push(vi,vi+1,vi+2, vi,vi+2,vi+3); vi+=4;
+  }
+  // +Z and -Z faces
+  for(let i=0;i<nx;i++) for(let j=0;j<ny;j++){
+    const x0=-hw+i*(w/nx), x1=-hw+(i+1)*(w/nx);
+    const y0=-hh+j*(h/ny), y1=-hh+(j+1)*(h/ny);
+    quad([x0,y0, hd],[x1,y0, hd],[x1,y1, hd],[x0,y1, hd]);
+    quad([x1,y0,-hd],[x0,y0,-hd],[x0,y1,-hd],[x1,y1,-hd]);
+  }
+  // +X and -X faces
+  for(let i=0;i<nz;i++) for(let j=0;j<ny;j++){
+    const z0=-hd+i*(d/nz), z1=-hd+(i+1)*(d/nz);
+    const y0=-hh+j*(h/ny), y1=-hh+(j+1)*(h/ny);
+    quad([ hw,y0,z1],[ hw,y0,z0],[ hw,y1,z0],[ hw,y1,z1]);
+    quad([-hw,y0,z0],[-hw,y0,z1],[-hw,y1,z1],[-hw,y1,z0]);
+  }
+  // +Y and -Y faces
+  for(let i=0;i<nx;i++) for(let j=0;j<nz;j++){
+    const x0=-hw+i*(w/nx), x1=-hw+(i+1)*(w/nx);
+    const z0=-hd+j*(d/nz), z1=-hd+(j+1)*(d/nz);
+    quad([x0, hh,z1],[x1, hh,z1],[x1, hh,z0],[x0, hh,z0]);
+    quad([x0,-hh,z0],[x1,-hh,z0],[x1,-hh,z1],[x0,-hh,z1]);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+  g.setIndex(indices); g.computeVertexNormals();
+  const mat=new THREE.MeshStandardMaterial({vertexColors:true, roughness:1.0, metalness:0.0, side:THREE.DoubleSide});
+  const box=new THREE.Mesh(g, mat);
+  box.add(boxGrid(w,h,d));
+  return box;
+}
+
+// Neon cell-grid over all 6 faces of a box
+function boxGrid(w,h,d){
+  const p=[]; const hw=w/2,hh=h/2,hd=d/2;
+  const nx=Math.max(1,Math.round(w/CELL)), ny=Math.max(1,Math.round(h/CELL)), nz=Math.max(1,Math.round(d/CELL));
+  for(const z of [hd,-hd]){
+    for(let i=0;i<=nx;i++){const x=-hw+i*(w/nx); p.push(x,-hh,z, x,hh,z);}
+    for(let j=0;j<=ny;j++){const y=-hh+j*(h/ny); p.push(-hw,y,z, hw,y,z);}
+  }
+  for(const x of [hw,-hw]){
+    for(let i=0;i<=nz;i++){const z=-hd+i*(d/nz); p.push(x,-hh,z, x,hh,z);}
+    for(let j=0;j<=ny;j++){const y=-hh+j*(h/ny); p.push(x,y,-hd, x,y,hd);}
+  }
+  for(const y of [hh,-hh]){
+    for(let i=0;i<=nx;i++){const x=-hw+i*(w/nx); p.push(x,y,-hd, x,y,hd);}
+    for(let j=0;j<=nz;j++){const z=-hd+j*(d/nz); p.push(-hw,y,z, hw,y,z);}
+  }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));
+  return new THREE.LineSegments(g, new THREE.LineBasicMaterial({color:NEON, transparent:true, opacity:0.95}));
+}
+
+// Place a wall-attached box. The box is INTENTIONALLY wider than the flat wall face,
+// so its corners are buried inside the chamfered diagonals — no triangular gaps.
+function spawnExtrusion(surface, protrudeCells, depthCells, zPos){
+  const protrude = protrudeCells*CELL;
+  const d = depthCells*CELL;
+  // for floor/ceil: span the FULL outer width (2*HW), corners hide in the chamfers
+  // for left/right: span the FULL outer height (2*HH)
+  let w,h, px,py;
+  if(surface==='floor' || surface==='ceil'){
+    w = 2*HW;             // wider than the flat ceiling/floor — corners go behind chamfers
+    h = protrude;
+    px = 0;
+    py = (surface==='floor') ? (-HH + protrude/2) : (HH - protrude/2);
+  } else {
+    w = protrude;
+    h = 2*HH;
+    py = 0;
+    px = (surface==='left') ? (-HW + protrude/2) : (HW - protrude/2);
+  }
+  const box = makeObstacleBox(w,h,d);
+  box.position.set(px, py, zPos);
+  box.userData={ cx:px, cy:py, hw:w/2, hh:h/2, hd:d/2, surface };
+  scene.add(box); obstacles.push(box);
+  return box;
+}
+
+function spawnObstacle(){
+  const z = player.position.z - 70 - Math.random()*20;
+  const r = Math.random();
+
+  // SCENARIO 1 — top + bottom hang: squeeze through the middle
+  if(r < 0.20){
+    const p = 1 + Math.floor(Math.random()*2);
+    spawnExtrusion('floor', p, 1, z);
+    spawnExtrusion('ceil',  p, 1, z);
+  }
+  // SCENARIO 2 — only top hangs: fly low
+  else if(r < 0.32){
+    spawnExtrusion('ceil', 2 + Math.floor(Math.random()*2), 1, z);
+  }
+  // SCENARIO 3 — only bottom rises: fly high
+  else if(r < 0.44){
+    spawnExtrusion('floor', 2 + Math.floor(Math.random()*2), 1, z);
+  }
+  // SCENARIO 4 — left wall pushes in: dodge right
+  else if(r < 0.56){
+    spawnExtrusion('left', 3 + Math.floor(Math.random()*2), 1, z);
+  }
+  // SCENARIO 5 — right wall pushes in: dodge left
+  else if(r < 0.68){
+    spawnExtrusion('right', 3 + Math.floor(Math.random()*2), 1, z);
+  }
+  // SCENARIO 6 — top + side combined (corner blocked)
+  else if(r < 0.82){
+    const p = 2 + Math.floor(Math.random()*2);
+    const which = Math.floor(Math.random()*4);
+    if(which===0){ spawnExtrusion('ceil', p, 1, z);  spawnExtrusion('left', p, 1, z); }
+    else if(which===1){ spawnExtrusion('ceil', p, 1, z); spawnExtrusion('right', p, 1, z); }
+    else if(which===2){ spawnExtrusion('floor', p, 1, z); spawnExtrusion('left', p, 1, z); }
+    else { spawnExtrusion('floor', p, 1, z); spawnExtrusion('right', p, 1, z); }
+  }
+  // SCENARIO 7 — occasional standalone cube floating in the corridor (contrast)
+  else {
+    const cellsW = 1 + Math.floor(Math.random()*2);
+    const cellsH = 1 + Math.floor(Math.random()*2);
+    const w=cellsW*CELL, h=cellsH*CELL, d=CELL;
+    const maxX = PLAY_HW - w/2, maxY = PLAY_HH - h/2;
+    const px = (Math.round(((Math.random()*2-1)*maxX)/CELL))*CELL;
+    const py = (Math.round(((Math.random()*2-1)*maxY)/CELL))*CELL;
+    const box = makeObstacleBox(w,h,d);
+    box.position.set(px, py, z);
+    box.userData={ cx:px, cy:py, hw:w/2, hh:h/2, hd:d/2, surface:'free' };
+    scene.add(box); obstacles.push(box);
+  }
+}
+
+// ============ FX ============
+function burst(pos,color,n=16,spread=7){
+  const geo=new THREE.BufferGeometry(); const arr=new Float32Array(n*3);
+  for(let i=0;i<n;i++){arr[i*3]=pos.x;arr[i*3+1]=pos.y;arr[i*3+2]=pos.z;}
+  geo.setAttribute('position',new THREE.BufferAttribute(arr,3));
+  const pts=new THREE.Points(geo,new THREE.PointsMaterial({color,size:0.3,transparent:true,opacity:1,depthWrite:false}));
+  const vels=[]; for(let i=0;i<n;i++)vels.push(new THREE.Vector3((Math.random()-.5),(Math.random()-.5),(Math.random()-.5)).multiplyScalar(spread));
+  pts.userData={vels,life:0.7}; scene.add(pts); fx.push(pts);
+}
+// dramatic glassy shatter for balls: many shard-points flung wide + an expanding flash ring
+function shatter(pos,r){
+  // shard particles — lots, wide spread, slight gravity-free drift
+  const n=34;
+  const geo=new THREE.BufferGeometry(); const arr=new Float32Array(n*3);
+  for(let i=0;i<n;i++){arr[i*3]=pos.x;arr[i*3+1]=pos.y;arr[i*3+2]=pos.z;}
+  geo.setAttribute('position',new THREE.BufferAttribute(arr,3));
+  const pts=new THREE.Points(geo,new THREE.PointsMaterial({color:0xff33d6,size:0.42,transparent:true,opacity:1,depthWrite:false,blending:THREE.AdditiveBlending}));
+  const vels=[]; for(let i=0;i<n;i++){
+    const dir=new THREE.Vector3((Math.random()-.5),(Math.random()-.5),(Math.random()-.5)).normalize();
+    vels.push(dir.multiplyScalar(10+Math.random()*12)); // wide, fast spread
+  }
+  pts.userData={vels,life:0.9,fade:0.9}; scene.add(pts); fx.push(pts);
+  // white-hot core flash
+  burst(pos,0xffffff,12,14);
+  // expanding ring shockwave
+  const ringGeo=new THREE.RingGeometry(r*0.6, r*0.8, 24);
+  const ring=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:0xff33d6,transparent:true,opacity:0.9,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
+  ring.position.copy(pos); ring.lookAt(camera.position);
+  ring.userData={ring:true,life:0.5,grow:18}; scene.add(ring); fx.push(ring);
+}
+
+// ============ Audio (Web Audio synth) ============
+let actx=null;
+function audio(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+let muted = localStorage.getItem('sr_muted')==='1';
+function beep(freq,dur,type='sine',vol=0.18,slide=0){
+  if(muted) return;
+  try{const c=audio();const o=c.createOscillator();const g=c.createGain();
+  o.type=type;o.frequency.value=freq; if(slide)o.frequency.linearRampToValueAtTime(freq+slide,c.currentTime+dur);
+  g.gain.setValueAtTime(vol,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+dur);
+  o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+dur);}catch(e){}
+}
+// short noise burst (used for glassy shatter)
+function noiseBurst(dur,vol,hp){
+  if(muted) return;
+  try{const c=audio();const n=Math.floor(c.sampleRate*dur);
+  const buf=c.createBuffer(1,n,c.sampleRate);const data=buf.getChannelData(0);
+  for(let i=0;i<n;i++){ data[i]=(Math.random()*2-1)*Math.pow(1-i/n,2); }
+  const src=c.createBufferSource();src.buffer=buf;
+  const f=c.createBiquadFilter();f.type='highpass';f.frequency.value=hp||3000;
+  const g=c.createGain();g.gain.setValueAtTime(vol,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+dur);
+  src.connect(f);f.connect(g);g.connect(c.destination);src.start();src.stop(c.currentTime+dur);}catch(e){}
+}
+const snd={
+  // bassy laser: low sine with downward sweep + a touch of square body
+  shoot:()=>{ beep(160,0.12,'sine',0.18,-90); beep(90,0.14,'square',0.06,-40); },
+  // glassy shatter: bright high partials + noise burst (like breaking glass)
+  pop:()=>{
+    noiseBurst(0.18,0.22,4500);
+    beep(2600,0.12,'triangle',0.10,-1400);
+    setTimeout(()=>beep(3300,0.09,'sine',0.07,-1800),20);
+    setTimeout(()=>beep(1900,0.10,'triangle',0.06,-900),40);
+  },
+  star:()=>{beep(880,0.08,'sine',0.16);setTimeout(()=>beep(1320,0.1,'sine',0.14),60);},
+  booster:()=>{beep(440,0.1,'triangle',0.16);setTimeout(()=>beep(660,0.1,'triangle',0.16),80);setTimeout(()=>beep(990,0.12,'triangle',0.16),160);},
+  hurt:()=>beep(120,0.35,'sawtooth',0.22,-60),
+  win:()=>{[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.2,'triangle',0.18),i*120));},
+  lose:()=>{[400,300,200].forEach((f,i)=>setTimeout(()=>beep(f,0.25,'sawtooth',0.18),i*150));}
+};
+
+// ============ State ============
+let state='start'; // start|play|pause|end
+let stars_collected=0, lives=START_LIVES, combo=0, comboTimer=0;
+let invuln=0, shield=0, levelTime=0, spawnTimer=0, won=false;
+let cumulativeScore = 0; // would carry across levels in full game
+
+// ============ HUD ============
+const starCnt=document.getElementById('starCnt');
+const livesEl=document.getElementById('lives');
+const timerFill=document.getElementById('timerFill');
+const comboEl=document.getElementById('combo');
+function renderLives(){livesEl.innerHTML='';for(let i=0;i<MAX_LIVES;i++){const h=document.createElement('span');h.className='heart '+(i<lives?'full':'empty');h.textContent=i<lives?'♥':'♡';livesEl.appendChild(h);}}
+function updateStars(){starCnt.innerHTML=stars_collected+'<small>/'+STAR_CAP+'</small>';}
+function showCombo(){if(combo>=2){comboEl.textContent='COMBO x'+combo;comboEl.classList.add('on');}else comboEl.classList.remove('on');}
+renderLives(); updateStars();
+
+// ============ Input ============
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+const target={x:0,y:0}; // desired ship position in play plane
+let firing=false;        // mobile: true while finger down. desktop: always true in play.
+function setTargetFromClient(cx,cy){
+  const nx=(cx/innerWidth)*2-1, ny=-((cy/innerHeight)*2-1);
+  target.x=nx*PLAY_HW; target.y=ny*PLAY_HH;
+}
+// DESKTOP: mouse steers, ship fires automatically the whole time
+addEventListener('mousemove',e=>{ if(state!=='play')return; setTargetFromClient(e.clientX,e.clientY); });
+// keyboard arrows / WASD as backup steering on laptop
+const keys={};
+addEventListener('keydown',e=>{ keys[e.code]=true; });
+addEventListener('keyup',e=>{ keys[e.code]=false; });
+// MOBILE: touch steers + fires
+addEventListener('touchstart',e=>{ if(state!=='play')return; const t=e.touches[0]; if(t.target.id==='pauseHit')return; firing=true; setTargetFromClient(t.clientX,t.clientY); },{passive:true});
+addEventListener('touchmove',e=>{ if(state!=='play')return; const t=e.touches[0]; setTargetFromClient(t.clientX,t.clientY); firing=true; },{passive:true});
+addEventListener('touchend',()=>{ firing=false; },{passive:true});
+
+// fire bullets
+let fireCd=0;
+function tryFire(dt){
+  // desktop fires continuously while playing; mobile fires while finger down
+  const wantFire = isTouch ? firing : true;
+  if(!wantFire) return;
+  fireCd-=dt;
+  if(fireCd<=0){
+    fireCd=0.12;
+    const b=new THREE.Mesh(new THREE.SphereGeometry(0.14,8,8),new THREE.MeshBasicMaterial({color:0xaaffee}));
+    const sw=new THREE.Vector3(); ship.getWorldPosition(sw);
+    b.position.set(sw.x, sw.y, sw.z-1);
+    b.userData={life:2.0};
+    scene.add(b); bullets.push(b);
+    snd.shoot();
+  }
+}
+
+// ============ Screens ============
+const startScreen=document.getElementById('startScreen');
+const endScreen=document.getElementById('endScreen');
+const pauseScreen=document.getElementById('pauseScreen');
+document.getElementById('startBtn').onclick=()=>{ audio(); startGame(); };
+document.getElementById('endBtn').onclick=()=>{ resetGame(); startGame(); };
+document.getElementById('resumeBtn').onclick=()=>{ state='play'; pauseScreen.classList.add('hide'); };
+document.getElementById('pauseHit').onclick=()=>{ if(state==='play'){state='pause';pauseScreen.classList.remove('hide');} };
+
+function startGame(){ startScreen.classList.add('hide'); endScreen.classList.add('hide'); state='play'; }
+function resetGame(){
+  [...balls,...stars,...boosters,...obstacles,...bullets,...fx].forEach(o=>scene.remove(o));
+  balls.length=stars.length=boosters.length=obstacles.length=bullets.length=fx.length=0;
+  stars_collected=0; lives=START_LIVES; combo=0; comboTimer=0; invuln=0; shield=0;
+  levelTime=0; spawnTimer=0; ballsSpawned=0; won=false;
+  player.position.set(0,0,5); target.x=0; target.y=0;
+  renderLives(); updateStars(); showCombo(); timerFill.style.width='100%';
+}
+
+function endLevel(victory){
+  state='end'; won=victory;
+  cumulativeScore += stars_collected;
+  // submit to platform
+  try{ window.parent.postMessage({type:'SUBMIT_SCORE', score:cumulativeScore}, '*'); }catch(e){}
+  document.getElementById('endTitle').textContent = victory? 'LEVEL 1 — ГОТОВО!' : 'GAME OVER';
+  document.getElementById('endScore').textContent = stars_collected;
+  document.getElementById('endSub').textContent = victory? 'звёзд из 20 собрано' : 'звёзд собрано · попробуй ещё';
+  endScreen.classList.remove('hide');
+  victory? snd.win() : snd.lose();
+}
+
+// ============ Damage ============
+function damage(){
+  if(invuln>0||shield>0) return;
+  lives--; renderLives(); invuln=HIT_INVULN; snd.hurt();
+  combo=0; comboTimer=0; showCombo();
+  // shake
+  camShake=0.5;
+  if(lives<=0) endLevel(false);
+}
+let camShake=0;
+
+// ============ Collect ============
+function collectStar(){
+  if(stars_collected<STAR_CAP){ stars_collected++; updateStars();
+    combo++; comboTimer=2.0; showCombo(); snd.star();
+  }
+}
+function collectBooster(kind){
+  if(kind==='life'){ if(lives<MAX_LIVES){lives++;renderLives();} }
+  else { shield=SHIELD_TIME; }
+  snd.booster();
+}
+function dropFromBall(ball){
+  const giveStar = stars_collected<STAR_CAP;
+  if(giveStar){
+    const st=makeStar(); st.position.copy(ball.position);
+    st.userData={spin:Math.random()*6,vy:(Math.random()-.5)*2,vx:(Math.random()-.5)*2};
+    scene.add(st); stars.push(st);
+    if(ball.userData.special){ spawnBoosterAt(ball.position); }
+  } else {
+    // past cap: every ball drops a booster
+    spawnBoosterAt(ball.position);
+  }
+}
+function spawnBoosterAt(pos){
+  const kind = Math.random()<0.5?'life':'shield';
+  const b=makeBooster(kind); b.position.copy(pos).add(new THREE.Vector3((Math.random()-.5)*1.2,(Math.random()-.5)*1.2,0));
+  b.userData.spin=Math.random()*6; scene.add(b); boosters.push(b);
+}
+
+// ============ Loop ============
+const clock=new THREE.Clock();
+function speedNow(){ // gently accelerates toward end of level
+  const p=levelTime/LEVEL_DURATION;
+  return 16 + p*10; // units/sec forward (was 26..48, now 16..26)
+}
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05);
+
+  if(state==='play'){
+    levelTime+=dt;
+    const fwd=speedNow();
+    player.position.z -= fwd*dt;
+
+    // timer
+    timerFill.style.width=Math.max(0,(1-levelTime/LEVEL_DURATION))*100+'%';
+
+    // spawn pacing — spread BALLS_TOTAL over the level
+    spawnTimer-=dt;
+    const interval = LEVEL_DURATION/(BALLS_TOTAL+2);
+    if(spawnTimer<=0 && ballsSpawned<BALLS_TOTAL){ spawnBall(); spawnTimer=interval*(0.7+Math.random()*0.6); }
+    // obstacles: a few sprinkled in
+    obSpawn-=dt;
+    if(obSpawn<=0){ spawnObstacle(); obSpawn=1.6+Math.random()*1.4; }
+
+    // keyboard steering (laptop backup): arrows / WASD nudge the target
+    const kStep = 18*dt;
+    if(keys['ArrowLeft']||keys['KeyA']) target.x-=kStep;
+    if(keys['ArrowRight']||keys['KeyD']) target.x+=kStep;
+    if(keys['ArrowUp']||keys['KeyW']) target.y+=kStep;
+    if(keys['ArrowDown']||keys['KeyS']) target.y-=kStep;
+    target.x=THREE.MathUtils.clamp(target.x,-PLAY_HW,PLAY_HW);
+    target.y=THREE.MathUtils.clamp(target.y,-PLAY_HH,PLAY_HH);
+
+    // shoot
+    tryFire(dt);
+
+    // move ship toward target (smooth) — in world plane relative to player z
+    const ease=1-Math.pow(0.001,dt);
+    const localX=THREE.MathUtils.clamp(target.x,-PLAY_HW,PLAY_HW);
+    const localY=THREE.MathUtils.clamp(target.y,-PLAY_HH,PLAY_HH);
+    const prevX=ship.position.x, prevY=ship.position.y;
+    ship.position.x += (localX-ship.position.x)*ease*0.5;
+    ship.position.y += (localY-ship.position.y)*ease*0.5;
+    // bank/pitch like a plane
+    const dx=ship.position.x-prevX, dy=ship.position.y-prevY;
+    ship.rotation.z += ((-dx*6)-ship.rotation.z)*0.15;
+    ship.rotation.x += ((dy*5)-ship.rotation.x)*0.15;
+
+    trail.scale.y=1+Math.sin(performance.now()*0.03)*0.3+(firing?0.5:0);
+
+    // invuln blink
+    if(invuln>0){ invuln-=dt; ship.visible=Math.floor(performance.now()/100)%2===0; } else ship.visible=true;
+    // shield: flash ship light cyan
+    if(shield>0){ shield-=dt; coreLight.color.set(0x39ffd0); coreLight.intensity=2.2; wing.material.emissive.set(0x0a4a3a); }
+    else { coreLight.color.set(0x4aa0ff); coreLight.intensity=1.0; wing.material.emissive.set(0x0a2a66); }
+
+    // tunnel anchored ahead of player; ALL segments (mosaic + grid) fly toward the camera
+    corridor.position.z = player.position.z;
+    segments.forEach(s=>{
+      s.position.z += fwd*dt;                       // whole segment moves forward as one piece
+      if(s.position.z > CELL){ s.position.z -= SEG_COUNT*CELL; } // recycle to the far end
+    });
+
+    // shipWorld for collisions
+    const shipW=new THREE.Vector3(); ship.getWorldPosition(shipW);
+
+    // bullets
+    for(let i=bullets.length-1;i>=0;i--){
+      const b=bullets[i];
+      b.position.z -= 90*dt; b.userData.life-=dt;
+      // align bullet x/y to ship muzzle at spawn already; keep straight
+      let hit=false;
+      for(let j=balls.length-1;j>=0;j--){
+        const t=balls[j];
+        if(b.position.distanceTo(t.position)<t.userData.r+0.3){
+          shatter(t.position, t.userData.r); snd.pop();
+          dropFromBall(t);
+          scene.remove(t); balls.splice(j,1);
+          scene.remove(b); bullets.splice(i,1); hit=true; break;
+        }
+      }
+      if(hit) continue;
+      if(b.userData.life<=0||b.position.z<player.position.z-80){ scene.remove(b); bullets.splice(i,1); }
+    }
+
+    // balls update + collision with ship
+    for(let i=balls.length-1;i>=0;i--){
+      const t=balls[i];
+      if(t.userData.mark){ t.userData.mark.rotation.z+=dt*2; }
+      if(t.position.z>player.position.z+3){ scene.remove(t); balls.splice(i,1); continue; }
+      // ship touched the ball: just remove it (no damage — balls are not a threat)
+      if(Math.abs(t.position.z-shipW.z)<1 && t.position.distanceTo(shipW)<t.userData.r+0.7){
+        scene.remove(t); balls.splice(i,1);
+      }
+    }
+
+    // stars float & collect
+    for(let i=stars.length-1;i>=0;i--){
+      const s=stars[i];
+      s.rotation.y+=dt*3; s.rotation.x+=dt*1.5;
+      s.position.x+=s.userData.vx*dt; s.position.y+=s.userData.vy*dt;
+      s.userData.vx*=0.96; s.userData.vy*=0.96;
+      if(s.position.z>player.position.z+3){ scene.remove(s); stars.splice(i,1); continue; }
+      if(Math.abs(s.position.z-shipW.z)<1.2 && s.position.distanceTo(shipW)<1.1){
+        collectStar(); burst(s.position,0xffd23a,10);
+        scene.remove(s); stars.splice(i,1);
+        if(stars_collected>=STAR_CAP){ /* cap reached, rest will be boosters */ }
+      }
+    }
+
+    // boosters
+    for(let i=boosters.length-1;i>=0;i--){
+      const b=boosters[i];
+      b.rotation.y+=dt*2; b.children[1].rotation.x+=dt*3;
+      if(b.position.z>player.position.z+3){ scene.remove(b); boosters.splice(i,1); continue; }
+      if(Math.abs(b.position.z-shipW.z)<1.3 && b.position.distanceTo(shipW)<1.2){
+        collectBooster(b.userData.kind); burst(b.position,b.userData.col,12);
+        scene.remove(b); boosters.splice(i,1);
+      }
+    }
+
+    // obstacles (static, attached to walls)
+    for(let i=obstacles.length-1;i>=0;i--){
+      const o=obstacles[i];
+      if(o.position.z>player.position.z+3){ scene.remove(o); obstacles.splice(i,1); continue; }
+      if(Math.abs(o.position.z-shipW.z) < o.userData.hd+0.5){
+        if(Math.abs(o.userData.cx-shipW.x) < o.userData.hw+0.5 &&
+           Math.abs(o.userData.cy-shipW.y) < o.userData.hh+0.5){
+          damage(); camShake=0.7;
+          o.position.z=player.position.z+5; // shove past so it can't re-hit
+        }
+      }
+    }
+
+    // combo timer
+    if(comboTimer>0){ comboTimer-=dt; if(comboTimer<=0){ combo=0; showCombo(); } }
+
+    // fx
+    for(let i=fx.length-1;i>=0;i--){
+      const p=fx[i]; p.userData.life-=dt;
+      if(p.userData.ring){
+        // expanding shockwave ring
+        const s=1+p.userData.grow*(1-p.userData.life/0.5)*dt*6;
+        p.scale.multiplyScalar(1+dt*p.userData.grow*0.15);
+        p.material.opacity=Math.max(p.userData.life/0.5,0);
+        if(p.userData.life<=0){scene.remove(p);fx.splice(i,1);}
+        continue;
+      }
+      const pos=p.geometry.attributes.position;
+      for(let k=0;k<pos.count;k++){const v=p.userData.vels[k];pos.array[k*3]+=v.x*dt;pos.array[k*3+1]+=v.y*dt;pos.array[k*3+2]+=v.z*dt;v.multiplyScalar(0.92);}
+      pos.needsUpdate=true;
+      const maxLife=p.userData.fade||0.7;
+      p.material.opacity=Math.max(p.userData.life/maxLife,0);
+      if(p.userData.life<=0){scene.remove(p);fx.splice(i,1);}
+    }
+
+    // win condition: time up OR all balls done & none left
+    if(levelTime>=LEVEL_DURATION || (ballsSpawned>=BALLS_TOTAL && balls.length===0 && stars.length===0 && boosters.length===0)){
+      endLevel(true);
+    }
+  }
+
+  // camera locked to tunnel axis (no lateral follow) — corridor stays still, ship moves within it
+  const camTargetZ=player.position.z+9;
+  camera.position.z += (camTargetZ-camera.position.z)*0.2;
+  camera.position.x += (0 - camera.position.x)*0.1;
+  camera.position.y += (0 - camera.position.y)*0.1;
+  const shipW2=new THREE.Vector3(); ship.getWorldPosition(shipW2);
+  if(camShake>0){ camera.position.x+=(Math.random()-.5)*camShake; camera.position.y+=(Math.random()-.5)*camShake; camShake*=0.85; if(camShake<0.02)camShake=0; }
+  camera.lookAt(0, 0, player.position.z-10);
+
+  neonLight.position.z=player.position.z-20;
+
+  renderer.render(scene,camera);
+}
+let obSpawn=2.0;
+animate();
+
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight); checkOrientation();});
+addEventListener('orientationchange', ()=>setTimeout(checkOrientation,150));
+
+// orientation gate: on touch devices, force landscape during play
+const rotateGate = document.getElementById('rotateGate');
+let pausedByOrientation = false;
+function checkOrientation(){
+  if(!isTouch){ rotateGate.classList.remove('show'); return; }
+  const portrait = innerHeight > innerWidth;
+  if(portrait){
+    rotateGate.classList.add('show');
+    if(state==='play'){ state='pause'; pausedByOrientation=true; }
+  } else {
+    rotateGate.classList.remove('show');
+    if(pausedByOrientation){ state='play'; pausedByOrientation=false; }
+  }
+}
+checkOrientation();
+</script>
+</body>
+</html>
