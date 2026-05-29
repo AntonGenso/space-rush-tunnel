@@ -110,12 +110,6 @@
   <div id="pauseHit">II</div>
   <div class="combo" id="combo">COMBO x2</div>
 
-  <div class="center-msg" id="startScreen">
-    <div class="title">SPACE RUSH</div>
-    <div class="sub" id="startSub">Веди корабль мышью или пальцем — он стреляет сам.<br>Сбивай красные шары, собирай звёзды.<br>Лавируй между неоновыми блоками на стенах.</div>
-    <div class="btn" id="startBtn">ИГРАТЬ</div>
-  </div>
-
   <div class="center-msg hide" id="endScreen">
     <div class="title" id="endTitle">LEVEL 1</div>
     <div class="big-score" id="endScore">0</div>
@@ -581,15 +575,13 @@ function tryFire(dt){
 }
 
 // ============ Screens ============
-const startScreen=document.getElementById('startScreen');
 const endScreen=document.getElementById('endScreen');
 const pauseScreen=document.getElementById('pauseScreen');
-document.getElementById('startBtn').onclick=()=>{ audio(); startGame(); };
 document.getElementById('endBtn').onclick=()=>{ resetGame(); startGame(); };
 document.getElementById('resumeBtn').onclick=()=>{ state='play'; pauseScreen.classList.add('hide'); };
 document.getElementById('pauseHit').onclick=()=>{ if(state==='play'){state='pause';pauseScreen.classList.remove('hide');} };
 
-function startGame(){ startScreen.classList.add('hide'); endScreen.classList.add('hide'); state='play'; }
+function startGame(){ endScreen.classList.add('hide'); state='play'; }
 function resetGame(){
   [...balls,...stars,...boosters,...obstacles,...bullets,...fx].forEach(o=>scene.remove(o));
   balls.length=stars.length=boosters.length=obstacles.length=bullets.length=fx.length=0;
@@ -598,6 +590,18 @@ function resetGame(){
   player.position.set(0,0,5); target.x=0; target.y=0;
   renderLives(); updateStars(); showCombo(); timerFill.style.width='100%';
 }
+
+// try to lock landscape (mobile only; ignored on desktop)
+if(isTouch){
+  try{
+    if(screen.orientation && screen.orientation.lock){
+      screen.orientation.lock('landscape').catch(()=>{});
+    }
+  }catch(e){}
+}
+
+// auto-start the game (we came here from the menu, no need for a second Play button)
+audio(); startGame();
 
 function endLevel(victory){
   state='end'; won=victory;

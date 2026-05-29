@@ -153,23 +153,57 @@
   });
   applySound();
 
-  // --- Orientation gate (mobile/touch only) ---
+  // --- Orientation: check only when PLAY is pressed ---
   const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
   const rotateScreen = document.getElementById('rotate');
   const playBtn = document.getElementById('playBtn');
 
-  function checkOrientation(){
-    if(!isTouch){ rotateScreen.classList.remove('show'); playBtn.disabled=false; return; }
-    const portrait = innerHeight > innerWidth;
-    if(portrait){ rotateScreen.classList.add('show'); playBtn.disabled=true; }
-    else        { rotateScreen.classList.remove('show'); playBtn.disabled=false; }
-  }
-  checkOrientation();
-  addEventListener('resize', checkOrientation);
-  addEventListener('orientationchange', ()=>setTimeout(checkOrientation,150));
+  // tap anywhere on the rotate screen to dismiss (in case user already rotated)
+  rotateScreen.addEventListener('click', ()=>{
+    if(!isTouch || innerWidth >= innerHeight){
+      rotateScreen.classList.remove('show');
+      location.href='game.html';
+    }
+  });
+  addEventListener('orientationchange', ()=>setTimeout(()=>{
+    if(rotateScreen.classList.contains('show') && innerWidth>innerHeight){
+      rotateScreen.classList.remove('show');
+      location.href='game.html';
+    }
+  },200));
 
   // --- Play button ---
-  playBtn.addEventListener('click', ()=>{ location.href = 'game.html'; });
+  async function tryFullscreenLandscape(){
+    // request fullscreen on the document element
+    try{
+      const el = document.documentElement;
+      if(el.requestFullscreen) await el.requestFullscreen();
+      else if(el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+    }catch(e){ /* user may decline or browser may not support */ }
+    // ask the OS to lock orientation to landscape
+    try{
+      if(screen.orientation && screen.orientation.lock){
+        await screen.orientation.lock('landscape');
+      }
+    }catch(e){ /* not supported in some browsers — fall back to rotate gate */ }
+  }
+
+  playBtn.addEventListener('click', async ()=>{
+    if(isTouch){
+      await tryFullscreenLandscape();
+      // give the OS a moment to apply rotation, then check
+      setTimeout(()=>{
+        if(innerHeight > innerWidth){
+          // still portrait → show rotate screen as a fallback
+          rotateScreen.classList.add('show');
+        } else {
+          location.href = 'game.html';
+        }
+      }, 250);
+    } else {
+      location.href = 'game.html';
+    }
+  });
 
   // --- Fallback animated background if menu_bg.jpg is missing ---
   const bgImg = new Image();
