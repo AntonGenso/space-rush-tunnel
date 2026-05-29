@@ -29,12 +29,14 @@
   #menu{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
         z-index:10;padding:6vh 24px 8vh;text-align:center;pointer-events:none}
   .logo-block{pointer-events:auto}
-  .logo{font-size:clamp(40px,7vw,84px);font-weight:900;font-style:italic;letter-spacing:6px;
+  .logo{font-size:clamp(56px,10vw,120px);font-weight:900;font-style:italic;letter-spacing:8px;
         background:linear-gradient(180deg,#fff,#9af6ff 70%,var(--neon));-webkit-background-clip:text;background-clip:text;color:transparent;
         text-shadow:0 0 36px var(--neonGlow);line-height:1}
   .tagline{font-size:clamp(11px,1.4vw,15px);letter-spacing:5px;color:rgba(255,255,255,.7);margin-top:10px}
 
-  .play{pointer-events:auto;padding:18px 64px;border:2px solid var(--neon);border-radius:60px;
+  /* bottom row: lang  [PLAY]  sound */
+  .play-row{display:flex;align-items:center;gap:18px;pointer-events:auto}
+  .play{padding:18px 64px;border:2px solid var(--neon);border-radius:60px;
         background:rgba(0,229,255,.18);color:#fff;font-size:20px;font-weight:800;letter-spacing:3px;
         cursor:pointer;box-shadow:0 0 22px var(--neonGlow), inset 0 0 22px rgba(0,229,255,.15);
         transition:transform .15s, background .15s; backdrop-filter:blur(2px)}
@@ -44,15 +46,16 @@
 
   .controls-hint{position:fixed;bottom:24px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.55);z-index:11;text-shadow:0 1px 4px rgba(0,0,0,.8)}
 
-  /* top-right toolbar: language + sound */
-  .toolbar{position:fixed;top:18px;right:18px;display:flex;gap:10px;z-index:30;pointer-events:auto}
-  .tool-btn{min-width:44px;height:44px;padding:0 12px;border:2px solid var(--neon);border-radius:22px;
-            background:rgba(0,229,255,.12);color:#fff;font-size:14px;font-weight:800;letter-spacing:2px;
-            cursor:pointer;box-shadow:0 0 10px var(--neonGlow);
-            display:flex;align-items:center;justify-content:center;transition:transform .12s, background .12s}
-  .tool-btn:hover{background:rgba(0,229,255,.25)}
+  /* round buttons flanking PLAY */
+  .tool-btn{min-width:52px;height:52px;padding:0 14px;border:2px solid var(--neon);border-radius:26px;
+            background:rgba(0,229,255,.14);color:#fff;font-size:15px;font-weight:800;letter-spacing:2px;
+            cursor:pointer;box-shadow:0 0 12px var(--neonGlow);
+            display:flex;align-items:center;justify-content:center;transition:transform .12s, background .12s;
+            pointer-events:auto}
+  .tool-btn:hover{background:rgba(0,229,255,.28)}
   .tool-btn:active{transform:scale(.94)}
-  .tool-btn.lang{font-size:13px}
+  .tool-btn.lang{font-size:14px}
+  .tool-btn.sound{font-size:20px}
   .tool-btn.muted{opacity:.55;border-color:rgba(255,255,255,.3);box-shadow:none;background:rgba(255,255,255,.05);color:rgba(255,255,255,.6)}
 
   /* orientation gate — only shown on touch devices in portrait */
@@ -75,17 +78,17 @@
 <div id="bg"></div>
 <div id="bgFallback"><canvas id="bgCanvas"></canvas></div>
 
-<div class="toolbar">
-  <button class="tool-btn lang" id="langBtn" title="Language">RU</button>
-  <button class="tool-btn sound" id="soundBtn" title="Sound">♪</button>
-</div>
-
 <div id="menu">
   <div class="logo-block">
     <div class="logo">SPACE RUSH</div>
     <div class="tagline" data-i18n="tagline">КОСМИЧЕСКИЙ ТУННЕЛЬ</div>
   </div>
-  <button class="play" id="playBtn" data-i18n="play">PLAY</button>
+
+  <div class="play-row">
+    <button class="tool-btn lang" id="langBtn" title="Language">UZ</button>
+    <button class="play" id="playBtn" data-i18n="play">PLAY</button>
+    <button class="tool-btn sound" id="soundBtn" title="Sound">♪</button>
+  </div>
 </div>
 
 <div class="controls-hint" data-i18n="controls">ПК: МЫШЬ — ВЕДЁТ КОРАБЛЬ · ТЕЛЕФОН: ПАЛЕЦ</div>
