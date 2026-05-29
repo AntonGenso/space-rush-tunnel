@@ -30,33 +30,36 @@
   /* solid dark fill for everything OUTSIDE the octagon (frames the corridor) */
   #frameSvg .outerfill{fill:#070b0e;fill-rule:evenodd}
 
-  /* HUD content sits inside the top of the frame, centered */
-  .hud-top{position:absolute;top:10px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:34px;z-index:3}
-  .stars{display:flex;align-items:center;gap:9px}
-  .star-ic{font-size:24px;color:#ffd23a;filter:drop-shadow(0 0 8px rgba(255,210,58,.8));line-height:1}
-  .star-cnt{font-size:28px;font-weight:800;font-style:italic;color:#fff;letter-spacing:1px}
-  .star-cnt small{font-size:15px;color:rgba(255,255,255,.5);font-style:normal}
+  /* HUD content sits inside the top of the frame, scales to fit narrow stage */
+  .hud-top{position:absolute;top:8px;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:0 18px;z-index:3}
+  .stars{display:flex;align-items:center;gap:5px}
+  .star-ic{font-size:18px;color:#ffd23a;filter:drop-shadow(0 0 6px rgba(255,210,58,.8));line-height:1}
+  .star-cnt{font-size:20px;font-weight:800;font-style:italic;color:#fff;letter-spacing:1px}
+  .star-cnt small{font-size:12px;color:rgba(255,255,255,.5);font-style:normal}
 
-  .center-block{display:flex;flex-direction:column;align-items:center;gap:5px}
-  .lvl{font-size:14px;letter-spacing:5px;color:var(--neon);font-weight:800;text-shadow:0 0 10px var(--neonGlow)}
-  .timerbar{width:200px;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;border:1px solid rgba(0,229,255,.25)}
+  .center-block{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .lvl{font-size:11px;letter-spacing:4px;color:var(--neon);font-weight:800;text-shadow:0 0 10px var(--neonGlow)}
+  .timerbar{width:min(150px, 35vw);height:4px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;border:1px solid rgba(0,229,255,.25)}
   .timerbar>i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--neon),#9af6ff);border-radius:3px;transition:width .2s linear;box-shadow:0 0 8px var(--neonGlow)}
 
-  .lives{display:flex;gap:5px}
-  .heart{font-size:21px;line-height:1;transition:transform .2s}
+  .lives{display:flex;gap:3px}
+  .heart{font-size:14px;line-height:1;transition:transform .2s}
   .heart.full{color:#ff4d6d;filter:drop-shadow(0 0 6px rgba(255,77,109,.7))}
   .heart.empty{color:rgba(255,255,255,.16)}
 
-  .combo{position:absolute;top:84px;left:50%;transform:translateX(-50%);font-size:24px;font-weight:800;font-style:italic;color:#ffd23a;opacity:0;text-shadow:0 0 14px rgba(255,210,58,.8);transition:opacity .2s;z-index:3}
+  .combo{position:absolute;top:44px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:800;font-style:italic;color:#ffd23a;opacity:0;text-shadow:0 0 14px rgba(255,210,58,.8);transition:opacity .2s;z-index:3}
   .combo.on{opacity:1}
 
-  #pauseHit{position:absolute;top:20px;right:40px;width:34px;height:34px;border-radius:6px;border:2px solid var(--neon);display:flex;align-items:center;justify-content:center;color:var(--neon);font-size:13px;pointer-events:auto;cursor:pointer;box-shadow:0 0 8px var(--neonGlow);z-index:4}
+  #pauseHit{position:absolute;top:36px;right:8px;width:24px;height:24px;border-radius:5px;border:2px solid var(--neon);display:flex;align-items:center;justify-content:center;color:var(--neon);font-size:10px;pointer-events:auto;cursor:pointer;box-shadow:0 0 8px var(--neonGlow);z-index:5}
 
   .center-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:auto;background:rgba(6,6,10,.72);backdrop-filter:blur(3px);transition:opacity .3s;z-index:20}
   .center-msg.hide{opacity:0;pointer-events:none}
   .title{font-size:46px;font-weight:800;font-style:italic;letter-spacing:3px;color:#fff;text-shadow:0 0 24px var(--neonGlow)}
   .sub{font-size:16px;color:rgba(255,255,255,.65);margin-top:14px;line-height:1.7;max-width:330px}
   .btn{margin-top:26px;padding:14px 44px;border:2px solid var(--neon);border-radius:40px;color:#fff;background:rgba(0,229,255,.14);font-size:18px;font-weight:700;letter-spacing:2px;cursor:pointer;pointer-events:auto}
+  .btn-secondary{border-color:rgba(255,255,255,.5);color:rgba(255,255,255,.85);background:rgba(255,255,255,.06)}
+  .end-actions{display:flex;gap:14px;margin-top:14px;pointer-events:auto}
+  .end-actions .btn{margin-top:0;padding:12px 28px;font-size:16px}
   .btn:active{transform:scale(.96);background:rgba(0,229,255,.3)}
   .big-score{font-size:64px;font-weight:800;font-style:italic;color:#ffd23a;margin:10px 0;text-shadow:0 0 24px rgba(255,210,58,.6)}
 
@@ -121,6 +124,10 @@
     <div class="big-score" id="endScore">0</div>
     <div class="sub" id="endSub">звёзд собрано</div>
     <div class="btn" id="endBtn">ЗАНОВО</div>
+    <div class="end-actions" id="endActions" style="display:none">
+      <button class="btn btn-secondary" id="menuBtn">MENU</button>
+      <button class="btn" id="retryBtn">RETRY</button>
+    </div>
   </div>
 
   <div class="center-msg hide" id="pauseScreen">
@@ -143,16 +150,38 @@
 <script type="module">
 import * as THREE from 'three';
 
-// ============ CONFIG (Level 1) ============
-const LEVEL = 1;
-const NEON = 0x00e5ff;            // level 1 neon: turquoise / cyan
-const LEVEL_DURATION = 60;        // seconds
-const BALLS_TOTAL = 30;           // level 1 spawns 30
-const STAR_CAP = 20;              // max stars per level
-const SPECIAL_EVERY = 6;          // roughly every Nth ball is special (gives booster too)
+// ============ STTM platform integration ============
+// Nickname comes via URL: game.html?nickname=Anton
+const NICKNAME = new URLSearchParams(location.search).get('nickname') || 'Player';
+// Send cumulative score to the STTM platform after every level (so progress survives early exit)
+function submitScore(score){
+  try{ window.parent.postMessage({type:'SUBMIT_SCORE', score:score, nickname:NICKNAME}, '*'); }catch(e){}
+}
+
+// ============ LEVELS CONFIG ============
+const LEVELS = [
+  // 1 — turquoise: gentle intro
+  { neon:0x00e5ff, balls:30, spawnInterval:[1.8, 3.0], protrudeBoost:0, movingChance:0.0 },
+  // 2 — yellow: moving obstacles appear
+  { neon:0xffd23a, balls:27, spawnInterval:[1.5, 2.6], protrudeBoost:0, movingChance:0.35 },
+  // 3 — blue: denser + bigger
+  { neon:0x3aa0ff, balls:24, spawnInterval:[1.3, 2.2], protrudeBoost:1, movingChance:0.55 },
+  // 4 — green: more movement + thicker protrusions
+  { neon:0x4dff7a, balls:22, spawnInterval:[1.1, 1.9], protrudeBoost:1, movingChance:0.75 },
+  // 5 — red: hardest, must collect ALL stars, no boosters (eased a bit)
+  { neon:0xff3a3a, balls:20, spawnInterval:[1.1, 1.9], protrudeBoost:1, movingChance:0.65 },
+];
+let levelIdx = 0;                          // 0..4
+let NEON = LEVELS[0].neon;
+const LEVEL_DURATION = 60;                 // seconds
+const STAR_CAP = 20;
+const SPECIAL_EVERY = 6;
 const START_LIVES = 3, MAX_LIVES = 5;
-const HIT_INVULN = 3.0;           // sec after damage
-const SHIELD_TIME = 10.0;         // immortality booster
+const HIT_INVULN = 3.0;
+const SHIELD_TIME = 10.0;
+let totalStars = 0;                        // accumulated across levels (max 100)
+function lvl(){ return LEVELS[levelIdx]; }
+function BALLS_TOTAL(){ return lvl().balls; }
 
 // ============ Scene ============
 const app = document.getElementById('app');
@@ -256,6 +285,20 @@ for(let i=0;i<SEG_COUNT;i++){ const s=buildSegment(); s.position.z = -i*CELL; co
 
 
 function setTunnelColor(hex){ gridColor=hex; gridMat.color.set(hex); }
+function setFrameColor(hex){
+  // hex 0xRRGGBB → "#rrggbb" for CSS
+  const css = '#'+hex.toString(16).padStart(6,'0');
+  const r=(hex>>16)&255, g=(hex>>8)&255, b=hex&255;
+  const glow = `rgba(${r},${g},${b},.7)`;
+  document.documentElement.style.setProperty('--neon', css);
+  document.documentElement.style.setProperty('--neonGlow', glow);
+}
+function applyLevelVisuals(){
+  NEON = lvl().neon;
+  setTunnelColor(NEON);
+  setFrameColor(NEON);
+  document.getElementById('lvlLabel').textContent = 'LEVEL '+(levelIdx+1);
+}
 
 
 
@@ -292,13 +335,91 @@ const balls=[], stars=[], boosters=[], obstacles=[], bullets=[], fx=[];
 const ballMat=new THREE.MeshStandardMaterial({color:0xff14c8,emissive:0xff00b8,emissiveIntensity:1.4,roughness:0.2,metalness:0.0});
 
 function makeStar(){
-  // 3D star = two crossed tetrahedra-ish / use simple extruded star
+  const grp = new THREE.Group();
+  // star body
   const s=new THREE.Shape(); const spikes=5,outer=0.45,inner=0.2;
   for(let i=0;i<spikes*2;i++){const r=i%2?inner:outer;const a=Math.PI/spikes*i-Math.PI/2;
     const x=Math.cos(a)*r,y=Math.sin(a)*r; i===0?s.moveTo(x,y):s.lineTo(x,y);} s.closePath();
   const g=new THREE.ExtrudeGeometry(s,{depth:0.18,bevelEnabled:true,bevelThickness:0.05,bevelSize:0.05,bevelSegments:1});
   g.center();
-  return new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0xffd23a,emissive:0x6b5400,emissiveIntensity:0.8,metalness:0.4,roughness:0.3}));
+  const star = new THREE.Mesh(g, new THREE.MeshStandardMaterial({
+    color:0xfff0a8, emissive:0xffc842, emissiveIntensity:2.4, metalness:0.4, roughness:0.2
+  }));
+  grp.add(star);
+  // outer halo sprite for soft glow that doesn't get lost on the colorful walls
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeRadialGlowTex(0xffd23a),
+    color: 0xffd23a, transparent:true, opacity:0.85, blending:THREE.AdditiveBlending, depthWrite:false
+  }));
+  halo.scale.set(2.2, 2.2, 1);
+  grp.add(halo);
+  // a small point light so the star illuminates the wall behind it
+  const pl = new THREE.PointLight(0xffd23a, 1.4, 6, 1.6);
+  grp.add(pl);
+  grp.userData.starMesh = star; // for rotation tween
+  return grp;
+}
+
+// procedural radial glow texture (cached)
+let _glowTexCache = null;
+function makeRadialGlowTex(){
+  if(_glowTexCache) return _glowTexCache;
+  const S=128, cv=document.createElement('canvas'); cv.width=cv.height=S;
+  const ctx=cv.getContext('2d');
+  const grd=ctx.createRadialGradient(S/2,S/2,0, S/2,S/2,S/2);
+  grd.addColorStop(0.00, 'rgba(255,255,255,1)');
+  grd.addColorStop(0.25, 'rgba(255,220,130,0.85)');
+  grd.addColorStop(0.55, 'rgba(255,180,40,0.35)');
+  grd.addColorStop(1.00, 'rgba(255,180,40,0)');
+  ctx.fillStyle=grd; ctx.fillRect(0,0,S,S);
+  _glowTexCache = new THREE.CanvasTexture(cv);
+  return _glowTexCache;
+}
+
+// FINISH arch — octagonal neon frame along the corridor profile + a glowing "FINISH" text plane
+function makeFinishArch(){
+  const grp = new THREE.Group();
+  // octagonal outline matching the tunnel profile, slightly inset so it sits on the rim
+  const pts = PROFILE.map(p=>new THREE.Vector3(p[0]*0.97, p[1]*0.97, 0));
+  pts.push(pts[0].clone()); // close
+  const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+  // outer bright line + thicker faint glow line behind
+  grp.add(new THREE.Line(lineGeo, new THREE.LineBasicMaterial({color:NEON, transparent:true, opacity:1.0})));
+  // a translucent inner "gate" plane that visually completes the arch
+  const planeShape = new THREE.Shape();
+  PROFILE.forEach((p,i)=>{ i===0 ? planeShape.moveTo(p[0]*0.96,p[1]*0.96) : planeShape.lineTo(p[0]*0.96,p[1]*0.96); });
+  planeShape.closePath();
+  const planeGeo = new THREE.ShapeGeometry(planeShape);
+  const plane = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({
+    color:NEON, transparent:true, opacity:0.08, side:THREE.DoubleSide, depthWrite:false
+  }));
+  grp.add(plane);
+  // FINISH text — rendered to a canvas and used as texture on a plane
+  const cv=document.createElement('canvas'); cv.width=512; cv.height=128;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='rgba(0,0,0,0)'; ctx.fillRect(0,0,512,128);
+  const cssColor = '#'+NEON.toString(16).padStart(6,'0');
+  ctx.font='800 italic 86px Trebuchet MS,Segoe UI,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  // glow halo
+  ctx.shadowColor=cssColor; ctx.shadowBlur=28;
+  ctx.fillStyle=cssColor;
+  ctx.fillText('FINISH', 256, 64);
+  // crisp top layer
+  ctx.shadowBlur=0; ctx.fillStyle='#fff';
+  ctx.fillText('FINISH', 256, 64);
+  const tex=new THREE.CanvasTexture(cv); tex.anisotropy=8;
+  const txt = new THREE.Mesh(
+    new THREE.PlaneGeometry(10, 2.5),
+    new THREE.MeshBasicMaterial({map:tex, transparent:true, depthWrite:false, side:THREE.DoubleSide})
+  );
+  txt.position.y = 0;
+  grp.add(txt);
+  // a soft point light pulled by the arch — illuminates the corridor as you approach
+  const pl = new THREE.PointLight(NEON, 2.0, 30, 1.5);
+  pl.position.z = 3;
+  grp.add(pl);
+  return grp;
 }
 function makeBooster(kind){
   const col = kind==='life'?0xff4d6d:0x39ffd0;
@@ -313,7 +434,7 @@ function makeBooster(kind){
 
 let ballsSpawned=0;
 function spawnBall(){
-  if(ballsSpawned>=BALLS_TOTAL) return;
+  if(ballsSpawned>=BALLS_TOTAL()) return;
   ballsSpawned++;
   const r=0.5+Math.random()*0.55;
   const m=new THREE.Mesh(new THREE.SphereGeometry(r,20,20),ballMat.clone());
@@ -392,13 +513,12 @@ function boxGrid(w,h,d){
 // Place a wall-attached box. The box is INTENTIONALLY wider than the flat wall face,
 // so its corners are buried inside the chamfered diagonals — no triangular gaps.
 function spawnExtrusion(surface, protrudeCells, depthCells, zPos){
+  protrudeCells = protrudeCells + lvl().protrudeBoost;
   const protrude = protrudeCells*CELL;
   const d = depthCells*CELL;
-  // for floor/ceil: span the FULL outer width (2*HW), corners hide in the chamfers
-  // for left/right: span the FULL outer height (2*HH)
   let w,h, px,py;
   if(surface==='floor' || surface==='ceil'){
-    w = 2*HW;             // wider than the flat ceiling/floor — corners go behind chamfers
+    w = 2*HW;
     h = protrude;
     px = 0;
     py = (surface==='floor') ? (-HH + protrude/2) : (HH - protrude/2);
@@ -410,7 +530,19 @@ function spawnExtrusion(surface, protrudeCells, depthCells, zPos){
   }
   const box = makeObstacleBox(w,h,d);
   box.position.set(px, py, zPos);
-  box.userData={ cx:px, cy:py, hw:w/2, hh:h/2, hd:d/2, surface };
+  box.userData={ cx:px, cy:py, hw:w/2, hh:h/2, hd:d/2, surface, basePx:px, basePy:py };
+  // pulsation motion (from level 2 onward, by chance)
+  if(Math.random() < lvl().movingChance){
+    box.userData.move = {
+      type: 'pulse',
+      axis: (surface==='floor'||surface==='ceil') ? 'y' : 'x',
+      anchor: (surface==='floor')? -HH : (surface==='ceil')? HH : (surface==='left')? -HW : HW,
+      sign:   (surface==='floor'||surface==='left') ? 1 : -1,
+      basePr: protrude,
+      speed: 1.2 + Math.random()*0.8,
+      phase: Math.random()*Math.PI*2,
+    };
+  }
   scene.add(box); obstacles.push(box);
   return box;
 }
@@ -460,7 +592,18 @@ function spawnObstacle(){
     const py = (Math.round(((Math.random()*2-1)*maxY)/CELL))*CELL;
     const box = makeObstacleBox(w,h,d);
     box.position.set(px, py, z);
-    box.userData={ cx:px, cy:py, hw:w/2, hh:h/2, hd:d/2, surface:'free' };
+    box.userData={ cx:px, cy:py, hw:w/2, hh:h/2, hd:d/2, surface:'free', basePx:px, basePy:py };
+    // free cubes can drift sideways on later levels
+    if(Math.random() < lvl().movingChance){
+      const driftAxis = Math.random()<0.5 ? 'x' : 'y';
+      box.userData.move = {
+        type: 'drift',
+        axis: driftAxis,
+        amp: driftAxis==='x' ? Math.min(3.5, PLAY_HW - w/2 - 0.5) : Math.min(2.5, PLAY_HH - h/2 - 0.5),
+        speed: 1.0 + Math.random()*0.7,
+        phase: Math.random()*Math.PI*2,
+      };
+    }
     scene.add(box); obstacles.push(box);
   }
 }
@@ -539,7 +682,7 @@ const snd={
 let state='start'; // start|play|pause|end
 let stars_collected=0, lives=START_LIVES, combo=0, comboTimer=0;
 let invuln=0, shield=0, levelTime=0, spawnTimer=0, won=false;
-let cumulativeScore = 0; // would carry across levels in full game
+let finishArch = null;
 
 // ============ HUD ============
 const starCnt=document.getElementById('starCnt');
@@ -592,7 +735,15 @@ function tryFire(dt){
 // ============ Screens ============
 const endScreen=document.getElementById('endScreen');
 const pauseScreen=document.getElementById('pauseScreen');
-document.getElementById('endBtn').onclick=()=>{ resetGame(); startGame(); };
+document.getElementById('endBtn').onclick=()=>{
+  if(endBtnAction==='next') advanceLevel();
+};
+document.getElementById('retryBtn').onclick=()=>{
+  levelIdx=0; totalStars=0; resetGame(); applyLevelVisuals(); startGame();
+};
+document.getElementById('menuBtn').onclick=()=>{
+  location.href = 'index.html';
+};
 document.getElementById('resumeBtn').onclick=()=>{ state='play'; pauseScreen.classList.add('hide'); };
 document.getElementById('pauseHit').onclick=()=>{ if(state==='play'){state='pause';pauseScreen.classList.remove('hide');} };
 
@@ -600,6 +751,7 @@ function startGame(){ endScreen.classList.add('hide'); state='play'; }
 function resetGame(){
   [...balls,...stars,...boosters,...obstacles,...bullets,...fx].forEach(o=>scene.remove(o));
   balls.length=stars.length=boosters.length=obstacles.length=bullets.length=fx.length=0;
+  if(finishArch){ scene.remove(finishArch); finishArch=null; }
   stars_collected=0; lives=START_LIVES; combo=0; comboTimer=0; invuln=0; shield=0;
   levelTime=0; spawnTimer=0; ballsSpawned=0; won=false;
   player.position.set(0,0,5); target.x=0; target.y=0;
@@ -616,18 +768,55 @@ if(isTouch){
 }
 
 // auto-start the game (we came here from the menu, no need for a second Play button)
+applyLevelVisuals();
 audio(); startGame();
 
 function endLevel(victory){
   state='end'; won=victory;
-  cumulativeScore += stars_collected;
-  // submit to platform
-  try{ window.parent.postMessage({type:'SUBMIT_SCORE', score:cumulativeScore}, '*'); }catch(e){}
-  document.getElementById('endTitle').textContent = victory? 'LEVEL 1 — ГОТОВО!' : 'GAME OVER';
-  document.getElementById('endScore').textContent = stars_collected;
-  document.getElementById('endSub').textContent = victory? 'звёзд из 20 собрано' : 'звёзд собрано · попробуй ещё';
-  endScreen.classList.remove('hide');
-  victory? snd.win() : snd.lose();
+  totalStars += stars_collected;
+  // submit cumulative score after every level — survives early exit on STTM platform
+  submitScore(totalStars);
+  const endBtn = document.getElementById('endBtn');
+  const endActions = document.getElementById('endActions');
+  if(victory && levelIdx < LEVELS.length-1){
+    // continue to next level
+    if(lives < MAX_LIVES) lives++;
+    renderLives();
+    document.getElementById('endTitle').textContent = 'LEVEL '+(levelIdx+1)+' ГОТОВО';
+    document.getElementById('endScore').textContent = stars_collected+' / '+STAR_CAP;
+    document.getElementById('endSub').textContent = 'Всего звёзд: '+totalStars+' / '+(LEVELS.length*STAR_CAP);
+    endBtn.textContent = 'ПОЕХАЛИ — LEVEL '+(levelIdx+2);
+    endBtn.style.display = '';
+    endActions.style.display = 'none';
+    endBtnAction = 'next';
+    endScreen.classList.remove('hide');
+    snd.win();
+  } else {
+    // final screen: game over or victory on level 5
+    document.getElementById('endTitle').textContent = victory? 'ПОБЕДА!' : 'GAME OVER';
+    document.getElementById('endScore').textContent = totalStars;
+    document.getElementById('endSub').textContent = victory? 'звёзд собрано из '+(LEVELS.length*STAR_CAP) : 'звёзд собрано · попробуй ещё';
+    endBtn.style.display = 'none';
+    endActions.style.display = '';
+    endScreen.classList.remove('hide');
+    victory? snd.win() : snd.lose();
+  }
+}
+
+let endBtnAction = 'restart';
+function advanceLevel(){
+  levelIdx++;
+  // reset per-level state but KEEP lives + totalStars
+  [...balls,...stars,...boosters,...obstacles,...bullets,...fx].forEach(o=>scene.remove(o));
+  balls.length=stars.length=boosters.length=obstacles.length=bullets.length=fx.length=0;
+  if(finishArch){ scene.remove(finishArch); finishArch=null; }
+  stars_collected=0; combo=0; comboTimer=0; invuln=0; shield=0;
+  levelTime=0; spawnTimer=0; ballsSpawned=0; obSpawn=2.0; won=false;
+  player.position.set(0,0,5); target.x=0; target.y=0;
+  applyLevelVisuals();
+  updateStars(); showCombo(); timerFill.style.width='100%';
+  endScreen.classList.add('hide');
+  state='play';
 }
 
 // ============ Damage ============
@@ -688,13 +877,13 @@ function animate(){
     // timer
     timerFill.style.width=Math.max(0,(1-levelTime/LEVEL_DURATION))*100+'%';
 
-    // spawn pacing — spread BALLS_TOTAL over the level
+    // spawn pacing — spread BALLS_TOTAL() over the level
     spawnTimer-=dt;
-    const interval = LEVEL_DURATION/(BALLS_TOTAL+2);
-    if(spawnTimer<=0 && ballsSpawned<BALLS_TOTAL){ spawnBall(); spawnTimer=interval*(0.7+Math.random()*0.6); }
-    // obstacles: a few sprinkled in
+    const interval = LEVEL_DURATION/(BALLS_TOTAL()+2);
+    if(spawnTimer<=0 && ballsSpawned<BALLS_TOTAL()){ spawnBall(); spawnTimer=interval*(0.7+Math.random()*0.6); }
+    // obstacles: a few sprinkled in (pacing per level)
     obSpawn-=dt;
-    if(obSpawn<=0){ spawnObstacle(); obSpawn=1.6+Math.random()*1.4; }
+    if(obSpawn<=0){ spawnObstacle(); const [a,b]=lvl().spawnInterval; obSpawn=a+Math.random()*(b-a); }
 
     // keyboard steering (laptop backup): arrows / WASD nudge the target
     const kStep = 18*dt;
@@ -793,15 +982,40 @@ function animate(){
       }
     }
 
-    // obstacles (static, attached to walls)
+    // obstacles (static or moving, attached to walls / free)
+    const tNow = performance.now()*0.001;
     for(let i=obstacles.length-1;i>=0;i--){
       const o=obstacles[i];
+      // apply motion
+      const m = o.userData.move;
+      if(m){
+        if(m.type==='drift'){
+          const off = Math.sin(tNow*m.speed + m.phase) * m.amp;
+          if(m.axis==='x'){ o.position.x = o.userData.basePx + off; o.userData.cx = o.userData.basePx + off; }
+          else            { o.position.y = o.userData.basePy + off; o.userData.cy = o.userData.basePy + off; }
+        } else if(m.type==='pulse'){
+          // 0.3..1.0 of base protrusion (so it never fully disappears)
+          const t = (Math.sin(tNow*m.speed + m.phase) + 1) / 2;       // 0..1
+          const k = 0.3 + 0.7*t;                                       // scale factor
+          if(m.axis==='y'){
+            o.scale.y = k;
+            const newCenter = m.anchor + m.sign * (m.basePr*k)/2;
+            o.position.y = newCenter; o.userData.cy = newCenter;
+            o.userData.hh = (m.basePr*k)/2;
+          } else {
+            o.scale.x = k;
+            const newCenter = m.anchor + m.sign * (m.basePr*k)/2;
+            o.position.x = newCenter; o.userData.cx = newCenter;
+            o.userData.hw = (m.basePr*k)/2;
+          }
+        }
+      }
       if(o.position.z>player.position.z+3){ scene.remove(o); obstacles.splice(i,1); continue; }
       if(Math.abs(o.position.z-shipW.z) < o.userData.hd+0.5){
         if(Math.abs(o.userData.cx-shipW.x) < o.userData.hw+0.5 &&
            Math.abs(o.userData.cy-shipW.y) < o.userData.hh+0.5){
           damage(); camShake=0.7;
-          o.position.z=player.position.z+5; // shove past so it can't re-hit
+          o.position.z=player.position.z+5;
         }
       }
     }
@@ -828,8 +1042,19 @@ function animate(){
       if(p.userData.life<=0){scene.remove(p);fx.splice(i,1);}
     }
 
-    // win condition: time up OR all balls done & none left
-    if(levelTime>=LEVEL_DURATION || (ballsSpawned>=BALLS_TOTAL && balls.length===0 && stars.length===0 && boosters.length===0)){
+    // win condition: time up OR all balls done — spawn the FINISH arch once
+    const allDone = ballsSpawned>=BALLS_TOTAL() && balls.length===0 && stars.length===0 && boosters.length===0;
+    if(!finishArch && (levelTime>=LEVEL_DURATION || allDone)){
+      finishArch = makeFinishArch();
+      finishArch.position.set(0, 0, player.position.z - 60);
+      scene.add(finishArch);
+      // remove pending obstacles ahead so the player has a clear approach
+      obSpawn = 999;
+    }
+    // when the ship crosses the arch, level is over
+    if(finishArch && player.position.z < finishArch.position.z + 1){
+      const arch = finishArch; finishArch = null;
+      scene.remove(arch);
       endLevel(true);
     }
   }
