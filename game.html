@@ -86,27 +86,6 @@
   .end-actions .btn{margin-top:0;padding:12px 28px;font-size:16px}
   .btn:active{transform:scale(.96);background:rgba(0,229,255,.3)}
   .big-score{font-size:64px;font-weight:800;font-style:italic;color:#ffd23a;margin:10px 0;text-shadow:0 0 24px rgba(255,210,58,.6)}
-
-  /* orientation gate (mobile portrait only) */
-  #rotateGate{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
-              background:rgba(6,7,10,.94);backdrop-filter:blur(8px);z-index:100;text-align:center;padding:24px;pointer-events:auto}
-  #rotateGate.show{display:flex}
-  /* phone silhouette icon, orange, rotating from portrait to landscape */
-  .rotate-ico{width:84px;height:140px;border:4px solid #ff9333;border-radius:14px;
-              position:relative;margin-bottom:34px;background:rgba(255,147,51,.08);
-              box-shadow:0 0 18px rgba(255,147,51,.55), inset 0 0 14px rgba(255,147,51,.15);
-              animation:phoneRotate 2.6s ease-in-out infinite;transform-origin:center}
-  /* speaker slit at top */
-  .rotate-ico::before{content:'';position:absolute;top:10px;left:50%;width:30px;height:5px;background:#ff9333;
-                      transform:translateX(-50%);border-radius:3px;box-shadow:0 0 6px rgba(255,147,51,.7)}
-  /* home indicator at bottom */
-  .rotate-ico::after{content:'';position:absolute;bottom:10px;left:50%;width:34px;height:4px;background:#ff9333;
-                     transform:translateX(-50%);border-radius:2px;opacity:.7}
-  @keyframes phoneRotate{
-    0%, 35%   { transform:rotate(0deg) }
-    65%, 100% { transform:rotate(-90deg) }
-  }
-  .rotate-title{font-size:28px;font-weight:900;letter-spacing:6px;color:#ff9333;text-shadow:0 0 14px rgba(255,147,51,.7)}
 </style>
 </head>
 <body>
@@ -178,12 +157,6 @@
   </div>
 </div>
 </div><!-- /stage -->
-
-<!-- orientation gate sits OUTSIDE the letterboxed stage so it covers the whole viewport -->
-<div id="rotateGate">
-  <div class="rotate-ico"></div>
-  <div class="rotate-title">ROTATE</div>
-</div>
 
 <script type="importmap">
 { "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.min.js" } }
@@ -862,15 +835,6 @@ function resetGame(){
   renderLives(); updateStars(); showCombo(); timerFill.style.width='100%';
 }
 
-// try to lock landscape (mobile only; ignored on desktop)
-if(isTouch){
-  try{
-    if(screen.orientation && screen.orientation.lock){
-      screen.orientation.lock('landscape').catch(()=>{});
-    }
-  }catch(e){}
-}
-
 // auto-start the game (we came here from the menu, no need for a second Play button)
 applyLevelVisuals();
 audio(); startGame();
@@ -1194,7 +1158,6 @@ function applyViewSize(){
   camera.updateProjectionMatrix();
   renderer.setSize(vs.w, vs.h);
   recomputeVisibleBounds();
-  checkOrientation();
 }
 recomputeVisibleBounds();
 addEventListener('resize', applyViewSize);
@@ -1202,24 +1165,6 @@ if(window.visualViewport){
   visualViewport.addEventListener('resize', applyViewSize);
   visualViewport.addEventListener('scroll', applyViewSize);
 }
-addEventListener('orientationchange', ()=>setTimeout(checkOrientation,150));
-
-// orientation gate: on touch devices, force landscape during play
-const rotateGate = document.getElementById('rotateGate');
-let pausedByOrientation = false;
-function checkOrientation(){
-  if(!isTouch){ rotateGate.classList.remove('show'); return; }
-  const vs=viewSize();
-  const portrait = vs.h > vs.w;
-  if(portrait){
-    rotateGate.classList.add('show');
-    if(state==='play'){ state='pause'; pausedByOrientation=true; }
-  } else {
-    rotateGate.classList.remove('show');
-    if(pausedByOrientation){ state='play'; pausedByOrientation=false; }
-  }
-}
-checkOrientation();
 </script>
 </body>
 </html>
