@@ -779,16 +779,57 @@ function setTargetFromClient(cx,cy){
     target.x=nx*VIS_HX; target.y=ny*VIS_HY;
   }
 }
-// DESKTOP: mouse steers, ship fires automatically the whole time
+// DESKTOP: mouse steers (absolute), ship fires automatically the whole time
 addEventListener('mousemove',e=>{ if(state!=='play')return; setTargetFromClient(e.clientX,e.clientY); });
 // keyboard arrows / WASD as backup steering on laptop
 const keys={};
 addEventListener('keydown',e=>{ keys[e.code]=true; });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
-// MOBILE: touch steers + fires
-addEventListener('touchstart',e=>{ if(state!=='play')return; const t=e.touches[0]; if(t.target.id==='pauseHit')return; firing=true; setTargetFromClient(t.clientX,t.clientY); },{passive:true});
-addEventListener('touchmove',e=>{ if(state!=='play')return; const t=e.touches[0]; setTargetFromClient(t.clientX,t.clientY); firing=true; },{passive:true});
-addEventListener('touchend',()=>{ firing=false; },{passive:true});
+
+// MOBILE: relative drag. Finger acts as a reference point; ship moves by how
+// far the finger has moved SINCE you touched down, scaled by sensitivity.
+// Touching down does NOT teleport the ship — only motion does.
+const TOUCH_SENSITIVITY = 1.5;
+let dragRefX = 0, dragRefY = 0;          // finger position at touchstart (client px)
+let shipRefX = 0, shipRefY = 0;          // target.x/y at touchstart
+let dragging = false;
+
+addEventListener('touchstart',e=>{
+  if(state!=='play') return;
+  const t=e.touches[0];
+  if(t.target && t.target.id==='pauseHit') return;
+  dragRefX = t.clientX;
+  dragRefY = t.clientY;
+  shipRefX = target.x;
+  shipRefY = target.y;
+  dragging = true;
+  firing  = true;
+},{passive:true});
+
+addEventListener('touchmove',e=>{
+  if(state!=='play' || !dragging) return;
+  const t=e.touches[0];
+  // pixel-space delta of the finger relative to where it touched down
+  const dxPx = t.clientX - dragRefX;
+  const dyPx = t.clientY - dragRefY;
+  // convert pixel delta to world units (same scale as setTargetFromClient: 2*VIS_H per stage side)
+  const r = stageEl.getBoundingClientRect();
+  const dxWorldScreen = (dxPx / r.width)  * 2 * VIS_HY * TOUCH_SENSITIVITY;  // VIS_HY = horizontal extent
+  const dyWorldScreen = (dyPx / r.height) * 2 * VIS_HX * TOUCH_SENSITIVITY;  // VIS_HX = vertical extent
+  // map screen-space deltas back to world axes (portrait: world rotated +90°)
+  if(PORTRAIT_MODE){
+    // screen X (horizontal) ← -world Y;  screen Y (vertical, down=+) ← -world X
+    target.x = shipRefX - dyWorldScreen;
+    target.y = shipRefY - dxWorldScreen;
+  } else {
+    target.x = shipRefX + dxWorldScreen;
+    target.y = shipRefY - dyWorldScreen;
+  }
+  firing = true;
+},{passive:true});
+
+addEventListener('touchend',()=>{ firing=false; dragging=false; },{passive:true});
+addEventListener('touchcancel',()=>{ firing=false; dragging=false; },{passive:true});
 
 // fire bullets
 let fireCd=0;
