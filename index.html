@@ -44,7 +44,22 @@
   .play:active{transform:scale(.96)}
   .play[disabled]{opacity:.35;cursor:not-allowed;pointer-events:none}
 
-  .controls-hint{position:fixed;bottom:24px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.55);z-index:11;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+  .controls-hint{position:fixed;bottom:10px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.55);z-index:11;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+
+  /* === Loader overlay: black screen + orange progress bar centered === */
+  #loader{position:fixed;inset:0;background:#06070a;z-index:200;
+          display:flex;align-items:center;justify-content:center;
+          transition:opacity .45s ease}
+  #loader.hide{opacity:0;pointer-events:none}
+  .loader-bar{width:62%;max-width:280px;height:8px;border-radius:6px;
+              background:rgba(255,255,255,.08);overflow:hidden;
+              border:1px solid rgba(255,147,51,.3);
+              box-shadow:0 0 14px rgba(255,147,51,.18)}
+  .loader-bar > i{display:block;width:0%;height:100%;
+                  background:linear-gradient(90deg,#ff9333,#ffb066,#ff9333);
+                  border-radius:6px;
+                  box-shadow:0 0 10px rgba(255,147,51,.85),0 0 22px rgba(255,147,51,.55);
+                  transition:width .25s ease-out}
 
   /* round buttons flanking PLAY */
   .tool-btn{min-width:52px;height:52px;padding:0 14px;border:2px solid var(--neon);border-radius:26px;
@@ -57,28 +72,14 @@
   .tool-btn.lang{font-size:14px}
   .tool-btn.sound{font-size:20px}
   .tool-btn.muted{opacity:.55;border-color:rgba(255,255,255,.3);box-shadow:none;background:rgba(255,255,255,.05);color:rgba(255,255,255,.6)}
-
-  /* orientation gate — only shown on touch devices in portrait */
-  #rotate{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
-          background:rgba(6,7,10,.94);backdrop-filter:blur(8px);z-index:50;text-align:center;padding:24px}
-  #rotate.show{display:flex}
-  /* phone silhouette icon, orange, rotating from portrait to landscape */
-  .rotate-ico{width:84px;height:140px;border:4px solid #ff9333;border-radius:14px;
-              position:relative;margin-bottom:34px;background:rgba(255,147,51,.08);
-              box-shadow:0 0 18px rgba(255,147,51,.55), inset 0 0 14px rgba(255,147,51,.15);
-              animation:phoneRotate 2.6s ease-in-out infinite;transform-origin:center}
-  .rotate-ico::before{content:'';position:absolute;top:10px;left:50%;width:30px;height:5px;background:#ff9333;
-                      transform:translateX(-50%);border-radius:3px;box-shadow:0 0 6px rgba(255,147,51,.7)}
-  .rotate-ico::after{content:'';position:absolute;bottom:10px;left:50%;width:34px;height:4px;background:#ff9333;
-                     transform:translateX(-50%);border-radius:2px;opacity:.7}
-  @keyframes phoneRotate{
-    0%, 35%   { transform:rotate(0deg) }
-    65%, 100% { transform:rotate(-90deg) }
-  }
-  .rotate-title{font-size:28px;font-weight:900;letter-spacing:6px;color:#ff9333;text-shadow:0 0 14px rgba(255,147,51,.7)}
 </style>
 </head>
 <body>
+<!-- Loader: black screen with an orange progress bar, hidden once the background image is ready -->
+<div id="loader">
+  <div class="loader-bar"><i id="loaderFill"></i></div>
+</div>
+
 <div id="bg"></div>
 <div id="bgFallback"><canvas id="bgCanvas"></canvas></div>
 
@@ -97,11 +98,6 @@
 
 <div class="controls-hint" data-i18n="controls">ПК: МЫШЬ — ВЕДЁТ КОРАБЛЬ · ТЕЛЕФОН: ПАЛЕЦ</div>
 
-<div id="rotate">
-  <div class="rotate-ico"></div>
-  <div class="rotate-title" data-i18n="rotateTitle">ROTATE</div>
-</div>
-
 <script>
   // --- i18n ---
   const I18N = {
@@ -109,14 +105,12 @@
       tagline:     'КОСМИЧЕСКИЙ ТУННЕЛЬ',
       play:        'PLAY',
       controls:    'ПК: МЫШЬ — ВЕДЁТ КОРАБЛЬ · ТЕЛЕФОН: ПАЛЕЦ',
-      rotateTitle: 'ROTATE',
       rotateSub:   '',
     },
     uz: {
       tagline:     'KOSMIK TUNNEL',
       play:        'PLAY',
       controls:    "KOMPYUTER: SICHQONCHA · TELEFON: BARMOQ",
-      rotateTitle: 'ROTATE',
       rotateSub:   '',
     }
   };
@@ -153,66 +147,45 @@
   });
   applySound();
 
-  // --- Orientation: check only when PLAY is pressed ---
-  const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
-  const rotateScreen = document.getElementById('rotate');
-  const playBtn = document.getElementById('playBtn');
-
-  // tap anywhere on the rotate screen to dismiss (in case user already rotated)
-  rotateScreen.addEventListener('click', ()=>{
-    if(!isTouch || innerWidth >= innerHeight){
-      rotateScreen.classList.remove('show');
-      location.href='game.html';
-    }
-  });
-  addEventListener('orientationchange', ()=>setTimeout(()=>{
-    if(rotateScreen.classList.contains('show') && innerWidth>innerHeight){
-      rotateScreen.classList.remove('show');
-      location.href='game.html';
-    }
-  },200));
-
   // --- Play button ---
-  async function tryFullscreenLandscape(){
-    // request fullscreen on the document element
-    try{
-      const el = document.documentElement;
-      if(el.requestFullscreen) await el.requestFullscreen();
-      else if(el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
-    }catch(e){ /* user may decline or browser may not support */ }
-    // ask the OS to lock orientation to landscape
-    try{
-      if(screen.orientation && screen.orientation.lock){
-        await screen.orientation.lock('landscape');
-      }
-    }catch(e){ /* not supported in some browsers — fall back to rotate gate */ }
+  const playBtn = document.getElementById('playBtn');
+  playBtn.addEventListener('click', ()=>{ location.href = 'game.html'; });
+
+  // --- Loader: animate orange bar while menu_bg.jpg loads ---
+  const loaderEl  = document.getElementById('loader');
+  const loaderFill = document.getElementById('loaderFill');
+  let loaderPct = 0;
+  let loaderDone = false;
+  // crawl to 90% over ~1.2s so it always feels alive, even on instant cached loads
+  const loaderTick = setInterval(()=>{
+    if(loaderDone) return;
+    if(loaderPct < 90){
+      loaderPct = Math.min(90, loaderPct + (90 - loaderPct) * 0.12 + 1);
+      loaderFill.style.width = loaderPct + '%';
+    }
+  }, 80);
+  function finishLoader(){
+    if(loaderDone) return;
+    loaderDone = true;
+    clearInterval(loaderTick);
+    loaderPct = 100;
+    loaderFill.style.width = '100%';
+    setTimeout(()=>{ loaderEl.classList.add('hide'); }, 220);
+    setTimeout(()=>{ loaderEl.remove(); }, 800);
   }
 
-  playBtn.addEventListener('click', async ()=>{
-    if(isTouch){
-      await tryFullscreenLandscape();
-      // give the OS a moment to apply rotation, then check
-      setTimeout(()=>{
-        if(innerHeight > innerWidth){
-          // still portrait → show rotate screen as a fallback
-          rotateScreen.classList.add('show');
-        } else {
-          location.href = 'game.html';
-        }
-      }, 250);
-    } else {
-      location.href = 'game.html';
-    }
-  });
-
-  // --- Fallback animated background if menu_bg.jpg is missing ---
+  // --- Background image with progressive loader + fallback if missing ---
   const bgImg = new Image();
+  bgImg.onload = finishLoader;
   bgImg.onerror = ()=>{
     document.getElementById('bg').style.display='none';
     const fb = document.getElementById('bgFallback'); fb.style.display='block';
     runFallback(document.getElementById('bgCanvas'));
+    finishLoader();
   };
   bgImg.src = 'menu_bg.jpg';
+  // safety net: if the image hangs, don't trap the user on the loader forever
+  setTimeout(finishLoader, 8000);
 
   function runFallback(cv){
     const ctx=cv.getContext('2d');
