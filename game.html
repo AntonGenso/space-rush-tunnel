@@ -8,7 +8,8 @@
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
   html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;font-family:'Trebuchet MS','Segoe UI',sans-serif;touch-action:none}
   /* game stage: fills the whole window, SVG frame slices to keep its octagon shape */
-  #stage{position:fixed;inset:0;background:#06060a;overflow:hidden}
+  /* центрированная «телефонная» колонка как в Атмосфере: на десктопе 480px, на мобиле весь экран */
+  #stage{position:fixed;top:0;bottom:0;left:0;right:0;margin:0 auto;width:100%;max-width:480px;background:#06060a;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.8)}
   #app{position:absolute;inset:0}
   canvas{display:block}
 
@@ -779,6 +780,16 @@ function setTargetFromClient(cx,cy){
     target.x=nx*VIS_HX; target.y=ny*VIS_HY;
   }
 }
+// Гибридные устройства (ноутбук с тачскрином): isTouch=true, но играют мышью.
+// Автоогонь включаем, как только видим НАСТОЯЩЕЕ движение мыши — Pointer Events
+// отличают её от эмулированных событий тача (pointerType === 'mouse').
+let mouseSeen = !isTouch;
+if (window.PointerEvent) {
+  addEventListener('pointermove', e => { if (e.pointerType === 'mouse') mouseSeen = true; });
+} else {
+  addEventListener('mousemove', () => { mouseSeen = true; });
+}
+
 // DESKTOP: mouse steers (absolute), ship fires automatically the whole time
 addEventListener('mousemove',e=>{ if(state!=='play')return; setTargetFromClient(e.clientX,e.clientY); });
 // keyboard arrows / WASD as backup steering on laptop
@@ -834,8 +845,8 @@ addEventListener('touchcancel',()=>{ firing=false; dragging=false; },{passive:tr
 // fire bullets
 let fireCd=0;
 function tryFire(dt){
-  // desktop fires continuously while playing; mobile fires while finger down
-  const wantFire = isTouch ? firing : true;
+  // мышь замечена → автоогонь; тач — пока палец на экране
+  const wantFire = mouseSeen || firing;
   if(!wantFire) return;
   fireCd-=dt;
   if(fireCd<=0){
